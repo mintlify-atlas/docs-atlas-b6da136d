@@ -1,0 +1,123 @@
+---
+title: Memory API Overview
+description: API for mem0 memory operations with Supabase vector store and intelligent memory classification
+---
+
+The Memory API provides a powerful interface for storing, searching, and managing user memories using mem0 with Supabase vector store. The API includes automatic memory type classification using LLM-based categorization.
+
+## Base URL
+
+```
+http://localhost:8000
+```
+
+## Memory Types
+
+The API supports five distinct memory types for intelligent categorization:
+
+<AccordionGroup>
+  <Accordion title="SHORT_TERM">
+    Temporary states and current activities happening right now or today that will change soon.
+    
+    **Examples:**
+    - "I'm currently working on the dashboard redesign"
+    - "Right now I'm debugging the auth flow"
+    - "I need to finish this today"
+    
+    **Key indicators:** "currently", "right now", "today", "at the moment", "working on"
+  </Accordion>
+
+  <Accordion title="LONG_TERM">
+    Permanent personal facts, preferences, identity, and habits that persist over time.
+    
+    **Examples:**
+    - "I prefer dark mode in all applications"
+    - "My name is John and I'm a software engineer"
+    - "I like pizza with extra cheese"
+    
+    **Key indicators:** General preferences, identity statements, lasting characteristics
+  </Accordion>
+
+  <Accordion title="EPISODIC">
+    Past events with specific time context - things that already happened.
+    
+    **Examples:**
+    - "Yesterday I had a meeting with the design team"
+    - "Last week I went to the React conference"
+    - "I met John at the tech summit in 2024"
+    
+    **Key indicators:** "yesterday", "last week", "last month", past tense events
+  </Accordion>
+
+  <Accordion title="SEMANTIC">
+    General knowledge or facts about the world (not personal preferences).
+    
+    **Examples:**
+    - "Python uses indentation for code blocks"
+    - "The capital of France is Paris"
+    - "React is a JavaScript library for building UIs"
+    
+    **Key indicators:** Objective facts, definitions, general truths
+  </Accordion>
+
+  <Accordion title="PROCEDURAL">
+    How-to knowledge, step-by-step processes, and instructions.
+    
+    **Examples:**
+    - "To deploy, run npm build then npm start"
+    - "The recipe requires boiling water first"
+    - "First authenticate, then call the API endpoint"
+    
+    **Key indicators:** "to do X, first...", "steps to...", instructions
+  </Accordion>
+</AccordionGroup>
+
+## Auto-Classification
+
+By default, the API automatically classifies memories using GPT-4.1-nano-2025-04-14. You can disable this by setting `auto_classify: false` in your requests, or override it by providing a `memory_type` in the metadata.
+
+## Available Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Add Memory" icon="plus" href="/api/memory/add">
+    Add new memories from conversations with automatic classification
+  </Card>
+  
+  <Card title="Search Memory" icon="magnifying-glass" href="/api/memory/search">
+    Search memories with semantic similarity and filtering
+  </Card>
+  
+  <Card title="Update Memory" icon="pen" href="/api/memory/update">
+    Update existing memory content
+  </Card>
+  
+  <Card title="Delete Memory" icon="trash" href="/api/memory/delete">
+    Delete specific memories by ID
+  </Card>
+</CardGroup>
+
+## Authentication
+
+Currently, the API does not require authentication. In production environments, ensure you implement proper authentication middleware.
+
+## Configuration
+
+The API is configured with:
+- **LLM Provider:** OpenAI (gpt-4.1-nano-2025-04-14)
+- **Vector Store:** Supabase with HNSW index and cosine distance
+- **Graph Store:** Neo4j (optional)
+- **CORS:** Enabled for all origins
+
+## Health Check
+
+```bash
+curl http://localhost:8000/
+```
+
+Response:
+```json
+{
+  "status": "ok",
+  "message": "Memory API is running"
+}
+```

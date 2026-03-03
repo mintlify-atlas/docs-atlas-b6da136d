@@ -1,0 +1,322 @@
+---
+title: Neo4j Knowledge Graph
+description: Build and visualize relationships between memories using Neo4j graph database integration for enhanced context understanding
+---
+
+Tabby's memory system optionally integrates with Neo4j to build a knowledge graph that maps relationships between memories, concepts, and entities. This enables more sophisticated context retrieval and relationship-based understanding.
+
+## Overview
+
+The Neo4j knowledge graph integration works alongside the vector store (Supabase) to provide relationship-based memory organization. While the vector store handles semantic similarity, the graph store captures explicit relationships between entities, events, and concepts.
+
+<Info>
+Neo4j integration is optional and configured through environment variables. If not configured, Tabby falls back to vector-only memory storage.
+</Info>
+
+## Configuration
+
+### Environment Variables
+
+Configure Neo4j integration in your `.env` file:
+
+```bash
+# Neo4j Configuration (Optional)
+NEO4J_URL=neo4j+s://your-instance.databases.neo4j.io
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=your-password
+```
+
+### Mem0 Configuration
+
+The memory system automatically detects and configures Neo4j when credentials are provided:
+
+```python
+if neo4j_url and neo4j_password:
+    config["graph_store"] = {
+        "provider": "neo4j",
+        "config": {
+            "url": neo4j_url,
+            "username": neo4j_username,
+            "password": neo4j_password,
+        }
+    }
+```
+
+Implementation: `backend/main.py:60-68`
+
+<Warning>
+Neo4j credentials are loaded from environment variables. Never commit credentials to version control. Use `.env` files or secure secret management.
+</Warning>
+
+## How It Works
+
+### Dual Storage Strategy
+
+Tabby uses a hybrid approach combining two complementary storage systems:
+
+<Steps>
+  <Step title="Vector Store (Supabase)">
+    Stores memory embeddings for semantic similarity search. Finds memories that are conceptually related based on meaning.
+  </Step>
+  
+  <Step title="Graph Store (Neo4j)">
+    Stores entities and relationships extracted from memories. Finds memories through explicit connections like "person X knows person Y" or "event A happened before event B".
+  </Step>
+</Steps>
+
+### Entity & Relationship Extraction
+
+When memories are added, Mem0 (powered by GPT-4.1-nano) automatically:
+
+1. **Extracts Entities**: Identifies people, places, concepts, and objects
+2. **Identifies Relationships**: Determines how entities relate to each other
+3. **Creates Graph Nodes**: Stores entities as nodes in Neo4j
+4. **Creates Graph Edges**: Connects related entities with labeled relationships
+
+### Memory Classification Integration
+
+The graph store works with memory type classification to organize knowledge:
+
+- **LONG_TERM** memories: Build persistent identity and preference graphs
+- **SHORT_TERM** memories: Create temporary context nodes that can be pruned
+- **EPISODIC** memories: Link events chronologically with temporal relationships
+- **SEMANTIC** memories: Connect factual knowledge in concept hierarchies
+- **PROCEDURAL** memories: Map step-by-step processes with ordered relationships
+
+Memory type classification: `backend/main.py:78-137`
+
+## Graph Schema
+
+While Mem0 manages the specific schema, typical graph patterns include:
+
+### Node Types
+- **Person**: User identities, colleagues, contacts
+- **Concept**: Technologies, tools, methodologies
+- **Event**: Meetings, deadlines, milestones
+- **Preference**: User likes, dislikes, settings
+- **Knowledge**: Facts, definitions, learnings
+
+### Relationship Types
+- **KNOWS**: Person-to-person connections
+- **PREFERS**: User preferences
+- **WORKS_ON**: Project/task relationships
+- **HAPPENED_BEFORE/AFTER**: Temporal event ordering
+- **RELATED_TO**: Conceptual connections
+- **PART_OF**: Hierarchical relationships
+
+## Benefits of Graph Storage
+
+### 1. Relationship-Based Retrieval
+
+Find memories through connections:
+- "What projects is Sarah working on?" → Follow `WORKS_ON` edges from Sarah node
+- "What happened before the product launch?" → Traverse `HAPPENED_BEFORE` relationships
+
+### 2. Multi-Hop Reasoning
+
+Discover indirect connections:
+- User → KNOWS → Colleague → WORKS_ON → Project
+- Enables queries like "Show me projects that people I know are working on"
+
+### 3. Temporal Understanding
+
+Track how information evolves:
+- Link episodic memories chronologically
+- Understand sequences of events
+- Build timelines of project progress
+
+### 4. Contextual Clustering
+
+Group related memories:
+- All memories about a specific person
+- All memories related to a project
+- All preferences in a category
+
+## Startup Logging
+
+When the Memory API starts, it logs the graph store configuration:
+
+```
+==================================================
+MEM0 CONFIGURATION:
+  Vector Store: supabase
+  Graph Store: neo4j
+==================================================
+```
+
+If Neo4j is not configured:
+
+```
+==================================================
+MEM0 CONFIGURATION:
+  Vector Store: supabase
+  Graph Store: disabled
+==================================================
+```
+
+Implementation: `backend/main.py:70-74`
+
+## Querying the Graph
+
+### Through Memory API
+
+The Memory API endpoints automatically leverage both vector and graph stores:
+
+```python
+# Search uses both vector similarity and graph relationships
+results = memory.search(
+    "What projects am I working on?",
+    user_id=user_id,
+    limit=10
+)
+```
+
+Implementation: `backend/main.py:222-243`
+
+### Direct Neo4j Queries
+
+For advanced use cases, you can query Neo4j directly using Cypher:
+
+```cypher
+// Find all people the user knows
+MATCH (user:Person {id: $userId})-[:KNOWS]->(contact:Person)
+RETURN contact.name
+
+// Find chronologically ordered events
+MATCH (e1:Event)-[:HAPPENED_BEFORE]->(e2:Event)
+WHERE e1.userId = $userId
+RETURN e1, e2
+ORDER BY e1.timestamp
+
+// Find related concepts
+MATCH (c1:Concept)-[:RELATED_TO*1..3]-(c2:Concept)
+WHERE c1.name = "React"
+RETURN c2.name
+```
+
+<Note>
+Mem0 handles the graph schema and entity extraction automatically. Direct Cypher queries are optional for advanced analytics.
+</Note>
+
+## Performance Considerations
+
+### When to Use Neo4j
+
+**Use Neo4j when you need:**
+- Complex relationship queries
+- Multi-hop reasoning
+- Timeline/chronological queries
+- Entity-centric retrieval
+- Knowledge graph visualization
+
+**Vector-only storage is sufficient for:**
+- Simple semantic search
+- Single-user personal notes
+- Minimal relationship complexity
+- Cost-sensitive deployments
+
+### Scaling
+
+Neo4j graph stores scale differently than vector stores:
+
+- **Vector Store**: Scales with number of memories (embeddings)
+- **Graph Store**: Scales with number of entities + relationships
+- **Query Performance**: Graph queries are fastest for relationship traversal, vector queries for semantic similarity
+
+## Memory API Integration
+
+The graph store is automatically used by all memory operations:
+
+### Adding Memories
+```python
+# Automatically extracts entities and relationships
+result = memory.add(
+    messages,
+    user_id=request.user_id,
+    metadata=metadata
+)
+```
+Implementation: `backend/main.py:189-218`
+
+### Searching Memories
+```python
+# Combines vector similarity + graph relationships
+results = memory.search(
+    request.query,
+    user_id=request.user_id,
+    limit=request.limit
+)
+```
+Implementation: `backend/main.py:222-243`
+
+### Filtering by Type
+```python
+# Graph can filter by memory_type metadata
+results = memory.search(
+    query,
+    user_id=user_id,
+    filters={"memory_type": "EPISODIC"}
+)
+```
+
+## Visualization
+
+Neo4j provides built-in visualization tools:
+
+### Neo4j Browser
+
+Access the Neo4j Browser to visualize your knowledge graph:
+
+1. Open your Neo4j instance URL in a browser
+2. Log in with your credentials
+3. Run Cypher queries to explore the graph
+4. Click nodes and edges to see properties
+5. Use the graph visualization to understand relationships
+
+### Example Visualization Query
+
+```cypher
+// Visualize user's knowledge graph
+MATCH (n)-[r]-(m)
+WHERE n.userId = $userId
+RETURN n, r, m
+LIMIT 100
+```
+
+<Info>
+The Brain Panel mentions "Neo4j knowledge graph visualization" in the roadmap (README.md:69). Direct in-app visualization may be added in future releases.
+</Info>
+
+## Best Practices
+
+1. **Start with Vector-Only**: Begin without Neo4j, add it when relationship queries become necessary
+2. **Use Managed Neo4j**: Services like Neo4j AuraDB handle scaling and backups
+3. **Monitor Graph Size**: Track node and relationship counts to understand storage growth
+4. **Leverage Memory Types**: Use classification metadata to organize graph nodes effectively
+5. **Combine Search Methods**: Use vector search for discovery, graph traversal for exploration
+6. **Regular Backups**: Export graph data periodically, especially for production deployments
+
+## Troubleshooting
+
+### Graph Store Not Enabled
+
+If you see `Graph Store: disabled` in startup logs:
+- Check that `NEO4J_URL` and `NEO4J_PASSWORD` are set in `.env`
+- Verify environment variables are loaded (`load_dotenv()` in main.py:11)
+- Restart the Memory API after updating environment variables
+
+### Connection Errors
+
+If Neo4j connection fails:
+- Verify Neo4j instance is running and accessible
+- Check firewall rules allow connections to Neo4j port (usually 7687)
+- Confirm credentials are correct
+- For Neo4j AuraDB, ensure IP allowlist includes your server
+
+### Performance Issues
+
+If graph queries are slow:
+- Create indexes on frequently queried properties
+- Limit relationship depth in multi-hop queries
+- Use `LIMIT` clauses to bound result sets
+- Consider caching frequent queries

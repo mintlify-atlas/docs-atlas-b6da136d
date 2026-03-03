@@ -1,0 +1,293 @@
+---
+title: Screen Capture & Analysis
+description: How Interview Copilot captures and analyzes coding problems from your screen
+---
+
+Screen capture is the core technology that powers Interview Copilot. It enables Tabby to "see" the coding problem on your screen and provide intelligent analysis.
+
+## How Screen Capture Works
+
+When you trigger screen capture, Tabby:
+
+<Steps>
+  <Step title="Captures the Active Window">
+    Takes a screenshot of your current screen using Electron's native capture API
+  </Step>
+  
+  <Step title="Encodes the Image">
+    Converts the screenshot to a base64-encoded image for transmission
+  </Step>
+  
+  <Step title="Sends to Vision Model">
+    Transmits the image to an AI vision model (GPT-4 Vision, Claude 3.5 Sonnet, etc.)
+  </Step>
+  
+  <Step title="Analyzes Content">
+    The AI extracts the problem statement, constraints, examples, and requirements
+  </Step>
+  
+  <Step title="Generates Structured Response">
+    Creates comprehensive analysis across all tabs (Idea, Code, Walkthrough, etc.)
+  </Step>
+</Steps>
+
+## Triggering Screen Capture
+
+### Analyze New Problem
+
+Press `Alt+X` to capture and analyze a coding problem:
+
+```typescript
+const handleAnalyze = async () => {
+  const screenshot = await window.electron.captureScreen();
+  sendMessage(
+    "Analyze this coding problem. Provide Idea, Code, Walkthrough, and Test Cases.",
+    { screenshot }
+  );
+};
+```
+
+<Note>
+  Make sure the coding problem is clearly visible on your screen before pressing Alt+X. The AI needs to see the problem statement, constraints, and examples.
+</Note>
+
+### Update with New Constraints
+
+Press `Alt+Shift+X` to update the analysis when constraints change:
+
+```typescript
+const handleUpdate = async () => {
+  const screenshot = await window.electron.captureScreen();
+  sendMessage(
+    "The interviewer added new constraints. Update the analysis for all sections.",
+    { screenshot }
+  );
+};
+```
+
+### Get Code Suggestions
+
+Press `Alt+N` to get improvement suggestions:
+
+```typescript
+const handleCodeSuggestion = async () => {
+  const screenshot = await window.electron.captureScreen();
+  sendMessage(
+    "Suggest improvements to the current code approach. Focus on optimization and clean code.",
+    { screenshot }
+  );
+};
+```
+
+## What the AI Sees
+
+The vision model analyzes your screenshot for:
+
+<CardGroup cols={2}>
+  <Card title="Problem Statement" icon="file-text">
+    The main problem description and what you need to solve
+  </Card>
+  <Card title="Constraints" icon="alert-circle">
+    Time/space complexity requirements and input limits
+  </Card>
+  <Card title="Examples" icon="code">
+    Sample inputs and expected outputs
+  </Card>
+  <Card title="Follow-ups" icon="message-circle">
+    Additional questions or edge cases mentioned
+  </Card>
+</CardGroup>
+
+## Custom Prompts with Screenshots
+
+You can also provide custom prompts with optional screenshot capture:
+
+```typescript
+// With screenshot
+handleCustomPrompt(
+  "Focus on the time complexity optimization for this problem",
+  includeScreenshot: true
+);
+
+// Without screenshot
+handleCustomPrompt(
+  "Explain the trade-offs between HashMap and TreeMap here",
+  includeScreenshot: false
+);
+```
+
+Use the prompt input at the bottom of the Interview Copilot panel to enter custom instructions. Toggle the camera icon to include/exclude screenshots.
+
+## Technical Implementation
+
+### Backend API Route
+
+The screen capture is processed by the Interview Copilot API:
+
+```typescript:nextjs-backend/src/app/api/interview-copilot/route.ts
+export async function POST(req: Request) {
+  const { messages, conversationId, screenshot } = await req.json();
+  
+  // Attach screenshot to the last message
+  if (screenshot) {
+    const lastMsg = modelMessages[modelMessages.length - 1];
+    if (lastMsg && lastMsg.role === 'user') {
+      lastMsg.content = [
+        { type: 'text', text: lastMsg.content },
+        { type: 'image', image: screenshot }
+      ];
+    }
+  }
+  
+  // Stream response with structured analysis
+  return streamText({
+    model: myProvider.languageModel(defaultModel),
+    messages: modelMessages,
+    output: Output.object({ schema: analysisSchema }),
+    // ...
+  });
+}
+```
+
+### Analysis Schema
+
+The AI generates structured output matching this schema:
+
+```typescript
+const analysisSchema = z.object({
+  idea: z.string().describe('Problem understanding, key observations, approaches'),
+  code: z.string().describe('Clean, well-commented implementation code'),
+  walkthrough: z.string().describe('Step-by-step explanation of the solution'),
+  testCases: z.array(z.object({
+    input: z.string(),
+    output: z.string(),
+    reason: z.string(),
+  })).describe('Edge cases and test inputs'),
+  mistakes: z.array(z.object({
+    mistake: z.string(),
+    correction: z.string(),
+    pattern: z.string(),
+  })).describe('Common mistakes for this problem type'),
+  memories: z.array(z.object({
+    memory: z.string(),
+    createdAt: z.string(),
+  })).describe('Relevant memories about user preferences'),
+});
+```
+
+## Best Practices
+
+### For Clear Capture
+
+<Steps>
+  <Step title="Full Problem Visible">
+    Ensure the entire problem statement fits on screen before capturing
+  </Step>
+  
+  <Step title="Remove Distractions">
+    Close unnecessary windows or notifications that might confuse the AI
+  </Step>
+  
+  <Step title="Good Contrast">
+    Use a readable theme with good contrast between text and background
+  </Step>
+  
+  <Step title="Zoom if Needed">
+    If text is too small, zoom in before capturing
+  </Step>
+</Steps>
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Screenshot shows wrong window">
+    Tabby captures the currently active window. Make sure the coding problem window is focused before pressing Alt+X.
+  </Accordion>
+  
+  <Accordion title="AI misunderstands the problem">
+    Try:
+    - Re-capture with better visibility
+    - Use the Chat tab to clarify specific points
+    - Provide a custom prompt with more context
+  </Accordion>
+  
+  <Accordion title="Capture is too slow">
+    Screen capture speed depends on:
+    - Your screen resolution (lower = faster)
+    - Network speed (if using cloud AI)
+    - AI model choice (faster models available in settings)
+  </Accordion>
+</AccordionGroup>
+
+## Privacy & Security
+
+<Warning>
+  **Important Privacy Information**
+  
+  - Screenshots are sent to your configured AI provider (OpenAI, Anthropic, etc.)
+  - Images are **not stored** locally after processing
+  - Screenshots are **not saved** to your conversation history by default
+  - Be mindful of sensitive information visible on screen
+  - Consider using local AI models for maximum privacy
+</Warning>
+
+### Data Flow
+
+1. **Local Capture**: Screenshot taken on your machine
+2. **Encoding**: Converted to base64 for transmission
+3. **API Call**: Sent to AI provider's vision endpoint
+4. **Processing**: AI analyzes and generates response
+5. **Deletion**: Screenshot discarded after analysis
+
+<Note>
+  Only the **text analysis results** are saved to your conversation history, not the original screenshots.
+</Note>
+
+## Performance Tips
+
+### Optimize Capture Speed
+
+- **Use faster models**: Select models optimized for vision in Settings
+- **Reduce resolution**: Lower screen resolution = smaller images = faster upload
+- **Local models**: Use Ollama or LM Studio for zero network latency
+- **Limit content**: Focus on the problem area, not full screen
+
+### API Cost Optimization
+
+<Tabs>
+  <Tab title="OpenAI">
+    GPT-4 Vision charges per image token. Costs vary by resolution:
+    - 1024x1024: ~$0.01 per analysis
+    - 512x512: ~$0.003 per analysis
+  </Tab>
+  
+  <Tab title="Anthropic">
+    Claude 3.5 Sonnet includes vision at no extra cost:
+    - Same per-token pricing as text
+    - More cost-effective for frequent captures
+  </Tab>
+  
+  <Tab title="Local">
+    LLaVA, BakLLaVA via Ollama:
+    - Completely free
+    - No network required
+    - Slower but private
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Explore Tabs" icon="layout-grid" href="/features/interview-copilot/tabs">
+    Learn about all seven analysis tabs
+  </Card>
+  <Card title="Memory System" icon="brain" href="/features/memory/brain-panel">
+    How memories enhance screen analysis
+  </Card>
+  <Card title="Settings" icon="settings" href="/guides/configuration/ai-providers">
+    Configure vision models and providers
+  </Card>
+  <Card title="Troubleshooting" icon="help-circle" href="/troubleshooting">
+    Common issues and solutions
+  </Card>
+</CardGroup>

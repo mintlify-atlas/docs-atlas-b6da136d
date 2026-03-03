@@ -1,122 +1,162 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Tabby AI Keyboard",
+  "theme": "aspen",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#8B5CF6",
+    "light": "#A78BFA",
+    "dark": "#6D28D9"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/TabbyAIKeyboard/tabby"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/TabbyAIKeyboard/tabby"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
+              "introduction",
               "quickstart",
-              "development"
+              "installation"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "concepts/architecture",
+              "concepts/tech-stack",
+              "concepts/memory-system"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Keyboard Shortcuts",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "shortcuts/overview",
+              "shortcuts/interview-copilot",
+              "shortcuts/action-menu",
+              "shortcuts/voice-agent"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "Features",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Interview Copilot",
             "pages": [
-              "api-reference/introduction"
+              "features/interview-copilot/overview",
+              "features/interview-copilot/screen-capture",
+              "features/interview-copilot/tabs"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "AI Assistance",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "features/ai-assistance/action-menu",
+              "features/ai-assistance/suggestions",
+              "features/ai-assistance/text-transformations"
+            ]
+          },
+          {
+            "group": "Memory & Brain",
+            "pages": [
+              "features/memory/brain-panel",
+              "features/memory/knowledge-graph",
+              "features/memory/context-capture"
+            ]
+          },
+          {
+            "group": "Voice Features",
+            "pages": [
+              "features/voice/voice-agent",
+              "features/voice/transcription",
+              "features/voice/commands"
+            ]
+          },
+          {
+            "group": "Automation",
+            "pages": [
+              "features/automation/desktop-control",
+              "features/automation/typewriter-mode",
+              "features/automation/windows-mcp"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Setup",
+            "pages": [
+              "guides/setup/prerequisites",
+              "guides/setup/database",
+              "guides/setup/environment",
+              "guides/setup/neo4j"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "guides/configuration/ai-providers",
+              "guides/configuration/memory-backend",
+              "guides/configuration/settings"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "guides/deployment/building",
+              "guides/deployment/releases",
+              "guides/deployment/backend-deploy"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Memory API",
+            "pages": [
+              "api/memory/overview",
+              "api/memory/add",
+              "api/memory/search",
+              "api/memory/update",
+              "api/memory/delete"
+            ]
+          },
+          {
+            "group": "Backend API",
+            "pages": [
+              "api/backend/chat",
+              "api/backend/completion",
+              "api/backend/interview-copilot",
+              "api/backend/voice-agent"
+            ]
+          },
+          {
+            "group": "Electron IPC",
+            "pages": [
+              "api/ipc/overview",
+              "api/ipc/text-operations",
+              "api/ipc/window-management"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

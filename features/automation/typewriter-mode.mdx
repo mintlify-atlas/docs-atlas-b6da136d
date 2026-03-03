@@ -1,0 +1,256 @@
+---
+title: Typewriter Mode
+description: Human-like character-by-character typing that's undetectable by proctoring software
+---
+
+Typewriter mode makes AI-generated text appear to be typed naturally by simulating human typing patterns, including realistic delays, typos, and corrections. This mode is essential for coding interviews and platforms with paste detection.
+
+## Why Typewriter Mode?
+
+Many coding interview platforms and proctored environments detect clipboard operations and automated pasting. Typewriter mode bypasses these restrictions by:
+
+- Typing each character individually with human-like timing
+- Introducing realistic typos and corrections
+- Varying keystroke delays based on context (punctuation, spaces, etc.)
+- Handling newlines and indentation like a real developer
+
+<Warning>
+  While typewriter mode produces human-like typing patterns, you are responsible for following the rules and policies of any platform or interview you use it with. Tabby is a productivity tool, not a cheating tool.
+</Warning>
+
+## Typing Modes
+
+Tabby offers two typewriter implementations optimized for different scenarios:
+
+### Simple Typewriter
+
+For basic text editors like Notepad, chat applications, and forms:
+
+```typescript
+// frontend/electron/src/services/text-handler.ts:153
+export async function typeSimpleToLastWindow(
+  text: string,
+  config: Partial<HumanTypingConfig> = {}
+): Promise<void>
+```
+
+**Best for:**
+- Plain text editors
+- Email and messaging
+- Web forms
+- Documentation
+
+### LeetCode Typewriter
+
+For code editors with auto-indent (LeetCode, CodeSignal, HackerRank, etc.):
+
+```typescript
+// frontend/electron/src/services/text-handler.ts:219
+export async function typeLeetCodeToLastWindow(
+  text: string,
+  config: Partial<HumanTypingConfig> = {}
+): Promise<void>
+```
+
+**Best for:**
+- LeetCode interviews
+- Online coding platforms
+- IDEs with auto-formatting
+- Smart code editors
+
+<Note>
+  LeetCode mode includes special handling to reset auto-indentation and preserve exact spacing from your source code.
+</Note>
+
+## Human Typing Simulation
+
+### Realistic Typos
+
+Typewriter mode uses a QWERTY keyboard proximity map to generate believable typos:
+
+```typescript
+// frontend/electron/src/services/text-handler.ts:90
+const QWERTY_NEIGHBORS: { [key: string]: string } = {
+  'a': 'qwsz',  // Keys adjacent to 'a'
+  'b': 'vghn',  // Keys adjacent to 'b'
+  'e': 'wrsdf', // Keys adjacent to 'e'
+  // ... full keyboard mapping
+};
+```
+
+When a typo occurs:
+
+<Steps>
+  <Step title="Wrong Key Press">
+    Types a neighboring character (e.g., 'r' instead of 't')
+  </Step>
+  
+  <Step title="Thinking Pause">
+    Waits 100-400ms (human reaction time)
+  </Step>
+  
+  <Step title="Correction">
+    Presses Backspace to delete the typo
+  </Step>
+  
+  <Step title="Retry">
+    Types the correct character after 50-200ms
+  </Step>
+</Steps>
+
+### Variable Timing
+
+Typewriter mode adds human-like variation to keystroke timing:
+
+```typescript
+interface HumanTypingConfig {
+  errorRate: number;           // 0.03 = 3% typo rate
+  minDelay: number;            // 20ms minimum between keys
+  maxDelay: number;            // 100ms maximum between keys
+  punctuationPauseMin: number; // 150ms extra after punctuation
+  punctuationPauseMax: number; // 400ms extra after punctuation
+  spacePauseMin: number;       // 30ms extra after spaces
+  spacePauseMax: number;       // 100ms extra after spaces
+  correctionPauseMin: number;  // 100ms before fixing typo
+  correctionPauseMax: number;  // 400ms before fixing typo
+  postCorrectionPauseMin: number; // 50ms after backspace
+  postCorrectionPauseMax: number; // 200ms after backspace
+}
+```
+
+### Default Configuration
+
+```typescript
+const DEFAULT_HUMAN_CONFIG: HumanTypingConfig = {
+  errorRate: 0.03,              // 3% of characters
+  minDelay: 20,
+  maxDelay: 100,
+  punctuationPauseMin: 150,
+  punctuationPauseMax: 400,
+  spacePauseMin: 30,
+  spacePauseMax: 100,
+  correctionPauseMin: 100,
+  correctionPauseMax: 400,
+  postCorrectionPauseMin: 50,
+  postCorrectionPauseMax: 200
+};
+```
+
+## LeetCode Mode: Auto-Indent Handling
+
+The LeetCode typewriter includes sophisticated indentation control:
+
+```typescript
+// For each new line:
+if (i > 0) {
+  // 1. Press Enter (triggers auto-indent)
+  await keyboard.pressKey(Key.Enter);
+  await keyboard.releaseKey(Key.Enter);
+  
+  // 2. Go to start of line
+  await keyboard.pressKey(Key.Home);
+  await keyboard.releaseKey(Key.Home);
+  
+  // 3. Select auto-indented content
+  await keyboard.pressKey(Key.LeftShift, Key.End);
+  await keyboard.releaseKey(Key.LeftShift, Key.End);
+  
+  // 4. Delete it
+  await keyboard.pressKey(Key.Backspace);
+  await keyboard.releaseKey(Key.Backspace);
+  
+  // 5. Type the CORRECT indentation
+  // (including original leading spaces)
+}
+```
+
+This ensures your code maintains exact indentation even in smart editors.
+
+## Timing Examples
+
+Typing the word "hello" with typewriter mode:
+
+```
+Action                    Delay (ms)
+──────────────────────────────────
+h                         67
+e                         43
+l                         89
+l → k (typo)             52
+(pause)                   287
+Backspace                 112
+l                         81
+o                         56
+```
+
+Total time: ~787ms vs. instant paste
+
+## Cancellation
+
+Stop typewriter mode at any time:
+
+**Keyboard:** Press `Shift+Escape`
+
+**Programmatic:**
+```typescript
+import { cancelTyping } from './services/text-handler';
+
+cancelTyping(); // Immediately stops typing
+```
+
+The typing loop checks `isTypingCancelled` after each character:
+
+```typescript
+for (const char of text) {
+  await keyboard.type(char);
+  await sleep(delay);
+  
+  if (isTypingCancelled) return; // Exit immediately
+}
+```
+
+## Usage in Tabby
+
+Typewriter mode is automatically used based on your **Text Output Mode** setting:
+
+1. Open Settings (`Ctrl+,` or system tray → Settings)
+2. Navigate to **Automation** section
+3. Select your preferred mode:
+   - **Paste** - Standard clipboard paste (fast)
+   - **Typewriter** - Character-by-character (basic editors)
+   - **Typewriter (LeetCode)** - Character-by-character with indent control
+
+<Note>
+  The selected mode applies globally to all text insertion operations including action menu results, AI suggestions, and interview copilot code.
+</Note>
+
+## Performance
+
+Typing speed varies based on content:
+
+| Content Type | Avg. Speed | Example Time |
+|--------------|------------|---------------|
+| Short text (50 chars) | 60-80 WPM | ~5 seconds |
+| Code snippet (200 chars) | 50-70 WPM | ~25 seconds |
+| Full solution (500 chars) | 45-65 WPM | ~60 seconds |
+
+<Warning>
+  Typewriter mode is significantly slower than paste mode. Only use it when paste detection is a concern.
+</Warning>
+
+## Implementation Reference
+
+Full source code: `frontend/electron/src/services/text-handler.ts`
+
+Key functions:
+- `typeSimpleToLastWindow()` - Lines 153-216
+- `typeLeetCodeToLastWindow()` - Lines 219-302
+- `shouldMakeTypo()` - Line 143
+- `getRandomNeighborChar()` - Line 133
+- `randomInRange()` - Line 129
+
+## Related Features
+
+- [Desktop Control](/features/automation/desktop-control) - Window management and keyboard automation
+- [Interview Copilot](/features/interview-copilot/overview) - Real-time coding interview assistance
+- [Action Menu](/features/ai-assistance/action-menu) - Quick AI transformations

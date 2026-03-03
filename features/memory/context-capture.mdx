@@ -1,0 +1,440 @@
+---
+title: Automatic Context Capture
+description: Automatically capture and analyze screenshots at regular intervals to build continuous contextual understanding of user activity
+---
+
+Automatic Context Capture is a powerful feature that periodically takes screenshots of your workspace and uses vision AI to extract meaningful context about what you're working on. This builds a continuous memory of your activity without manual input.
+
+## Overview
+
+The Context Capture service runs in the background (Electron main process), taking screenshots at configurable intervals and sending them to the Memory API for vision-based analysis. Extracted context is stored as memories and used to enhance AI understanding of your workflow.
+
+<Warning>
+Context Capture uses GPT-4.1-nano with vision capabilities, which incurs higher API costs than text-only operations. Use selectively and monitor your OpenAI usage.
+</Warning>
+
+## How It Works
+
+<Steps>
+  <Step title="Timer Triggers Capture">
+    Every 60 seconds (default), the service checks if the system is idle. If active, it proceeds to capture.
+  </Step>
+  
+  <Step title="Screenshot Captured">
+    Uses Electron's `desktopCapturer` API to capture the primary screen at 1280x720 resolution.
+  </Step>
+  
+  <Step title="Idle Detection">
+    Checks system idle time using `powerMonitor.getSystemIdleTime()`. Skips capture if idle for more than 60 seconds (default).
+  </Step>
+  
+  <Step title="Send to Renderer">
+    Sends the screenshot data URL to the renderer process via IPC event `analyze-screenshot`.
+  </Step>
+  
+  <Step title="Upload to Supabase">
+    Brain Panel uploads the screenshot to Supabase storage bucket `context-captures` for temporary hosting.
+  </Step>
+  
+  <Step title="Vision Analysis">
+    Calls Memory API endpoint `POST /memory/add_image` with the screenshot URL and analysis prompt.
+  </Step>
+  
+  <Step title="Memory Storage">
+    GPT-4.1-nano analyzes the screenshot, extracts key context, and stores it as a memory with auto-classification.
+  </Step>
+  
+  <Step title="Cleanup">
+    After 30 seconds, the temporary screenshot is deleted from Supabase storage to save space.
+  </Step>
+</Steps>
+
+Implementation: `frontend/electron/src/services/context-capture.ts:58-85`
+
+## Configuration
+
+### Default Settings
+
+The Context Capture service uses these defaults:
+
+```typescript
+const DEFAULT_CONFIG: CaptureConfig = {
+  enabled: false,           // Disabled by default
+  intervalMs: 60000,        // Capture every 60 seconds
+  idleThresholdMs: 60000,   // Skip if idle for 60+ seconds
+}
+```
+
+Implementation: `frontend/electron/src/services/context-capture.ts:9-13`
+
+### Toggling Capture
+
+Enable or disable context capture from the Brain Panel:
+
+1. Open Brain Panel with `Ctrl+Shift+B`
+2. Toggle the "Context Capture" switch
+3. Status indicator (eye icon) shows green when enabled
+4. Captures begin immediately when enabled
+5. Service stops when disabled
+
+Implementation: `frontend/src/components/brain-panel/expanded-panel.tsx:123-143`
+
+### Programmatic Configuration
+
+```typescript
+// Update configuration
+contextCaptureService.updateConfig({
+  enabled: true,
+  intervalMs: 120000,      // 2 minutes
+  idleThresholdMs: 300000, // 5 minutes
+})
+
+// Check current status
+const isEnabled = contextCaptureService.isEnabled()
+const config = contextCaptureService.getConfig()
+```
+
+Implementation: `frontend/electron/src/services/context-capture.ts:87-96`
+
+## Idle Detection
+
+To avoid capturing when you're away from your computer, the service includes smart idle detection:
+
+```typescript
+const idleSeconds = powerMonitor.getSystemIdleTime()
+const isIdle = idleSeconds * 1000 > this.config.idleThresholdMs
+
+if (!isIdle) {
+  this.captureAndAnalyze()
+}
+```
+
+- **System Idle Time**: Uses OS-level idle detection (no keyboard/mouse activity)
+- **Threshold**: Default 60 seconds - if idle longer, skip capture
+- **Logging**: Console logs show idle time and whether capture was skipped
+
+Implementation: `frontend/electron/src/services/context-capture.ts:42-48`
+
+<Info>
+Idle detection helps conserve API costs by not analyzing screenshots when you're not actively working.
+</Info>
+
+## Screenshot Capture
+
+### Technical Details
+
+```typescript
+const sources = await desktopCapturer.getSources({
+  types: ['screen'],
+  thumbnailSize: { width: 1280, height: 720 },
+})
+
+const screenshot = sources[0].thumbnail.toDataURL()
+```
+
+- **Resolution**: 1280x720 (720p) - balances detail and file size
+- **Format**: Data URL (base64-encoded PNG)
+- **Source**: Primary screen only (multi-monitor support uses first screen)
+- **Frequency**: Configurable, default 60 seconds
+
+Implementation: `frontend/electron/src/services/context-capture.ts:65-75`
+
+### Why 720p?
+
+- **Sufficient Detail**: Text and UI elements are readable for vision AI
+- **File Size**: Smaller than 1080p/4K, faster to upload and process
+- **API Costs**: GPT-4 vision pricing based on tokens, which correlate with image size
+- **Performance**: Quick capture and upload without blocking UI
+
+## Vision Analysis
+
+### Analysis Prompt
+
+When a screenshot is sent to the Memory API, it includes this context prompt:
+
+```
+Analyze this screenshot and extract key context about what the user is working on.
+```
+
+This instructs GPT-4.1-nano to focus on:
+- Active applications and tools
+- Visible code, documents, or content
+- Current task or activity
+- Relevant technical context
+
+Implementation: `frontend/src/components/brain-panel/brain-panel.tsx:76`
+
+### Memory Metadata
+
+Each captured screenshot memory includes metadata:
+
+```json
+{
+  "source": "screen_capture",
+  "captured_at": "2026-03-03T10:15:30.000Z"
+}
+```
+
+This allows filtering screen-captured memories from manually added ones.
+
+Implementation: `frontend/src/components/brain-panel/brain-panel.tsx:78-81`
+
+### Auto-Classification
+
+Screenshot memories are automatically classified by memory type:
+
+- If the screenshot shows current work → **SHORT_TERM**
+- If it captures a specific event → **EPISODIC**
+- If it shows technical documentation → **SEMANTIC**
+- If it displays how-to guides → **PROCEDURAL**
+
+Classification happens server-side using the Memory Classifier.
+
+Implementation: `backend/main.py:286-290`
+
+## Storage & Cleanup
+
+### Upload to Supabase
+
+```typescript
+const { uploadScreenshot, deleteScreenshot } = await import(
+  '@/lib/supabase/upload-screenshot'
+)
+
+const uploadResult = await uploadScreenshot(data.dataUrl, userId)
+// uploadResult.url - Public URL for vision API
+// uploadResult.path - Storage path for deletion
+```
+
+Screenshots are uploaded to the `context-captures` Supabase storage bucket.
+
+Implementation: `frontend/src/components/brain-panel/brain-panel.tsx:66-69`
+
+### Automatic Cleanup
+
+```typescript
+setTimeout(() => {
+  deleteScreenshot(uploadResult.path).catch(console.error)
+}, 30000) // 30 seconds
+```
+
+After 30 seconds, temporary screenshots are deleted to:
+- Save storage space
+- Reduce storage costs
+- Preserve privacy (only extracted context remains)
+
+<Note>
+Only the extracted textual context is permanently stored in the memory system. Raw screenshots are temporary.
+</Note>
+
+## Privacy Considerations
+
+### What Is Stored
+
+**Permanently Stored:**
+- Extracted textual context from vision analysis
+- Memory metadata (timestamp, source, classification)
+- User ID association
+
+**Temporarily Stored (30 seconds):**
+- Screenshot image in Supabase storage
+
+**Not Stored:**
+- Raw screenshot after cleanup period
+- Exact pixel data or full visual record
+
+### Controlling Capture
+
+1. **Manual Toggle**: Disable in Brain Panel when working on sensitive material
+2. **Idle Detection**: Automatically skips capture when system is idle
+3. **On-Demand**: Leave disabled by default, enable only when needed
+4. **Shortcut Access**: Quick `Ctrl+Shift+B` toggle for fast control
+
+<Warning>
+Be mindful of sensitive information on screen. Disable context capture when working with:
+- Personal identifiable information (PII)
+- Financial data or credentials
+- Confidential company information
+- Medical or legal documents
+</Warning>
+
+## IPC Communication
+
+### Main Process (Electron)
+
+The Context Capture service runs in the Electron main process:
+
+```typescript
+this.rendererWindow.webContents.send('analyze-screenshot', {
+  dataUrl: screenshot,
+  timestamp: new Date().toISOString(),
+})
+```
+
+Implementation: `frontend/electron/src/services/context-capture.ts:78-81`
+
+### Renderer Process (React)
+
+The Brain Panel listens for screenshot events:
+
+```typescript
+const analyzeCleanup = window.electron?.onAnalyzeScreenshot?.(
+  async (data) => {
+    console.log('[BrainPanel] Received screenshot for analysis')
+    setIsLearning(true)
+    setRecentActivity('Processing screenshot...')
+    // ... upload and analyze
+  }
+)
+```
+
+Implementation: `frontend/src/components/brain-panel/brain-panel.tsx:60-108`
+
+### IPC Handlers
+
+Registered in Electron preload script:
+
+```typescript
+onAnalyzeScreenshot: (handler) => {
+  ipcRenderer.on("analyze-screenshot", handler);
+  return () => ipcRenderer.removeListener("analyze-screenshot", handler);
+}
+```
+
+Implementation: `frontend/electron/src/preload.ts:55-57`
+
+## Visual Feedback
+
+When context capture is active, users see multiple indicators:
+
+### Brain Panel States
+
+1. **Collapsed Panel**: 
+   - Green status dot when capture enabled
+   - Brain icon pulses during processing
+   - Sparkles animation during analysis
+
+2. **Expanded Panel**:
+   - Eye icon (green) when enabled, eye-off (gray) when disabled
+   - "Processing screenshot..." in activity toast
+   - "New context captured" when complete
+   - Recent memories list updates with new entry
+
+Implementation: `frontend/src/components/brain-panel/collapsed-brain.tsx:43-60`
+
+### Console Logging
+
+Detailed logging for debugging:
+
+```
+[ContextCapture] Starting...
+[ContextCapture] Interval: 60000 ms
+[ContextCapture] Idle threshold: 60 s
+[ContextCapture] Tick - system idle: 5 s, skipping: false
+[ContextCapture] Captured screenshot, sending to renderer...
+[BrainPanel] Received screenshot for analysis
+[BrainPanel] Uploaded to: https://...
+[BrainPanel] Memory result: { success: true, ... }
+```
+
+Implementation: `frontend/electron/src/services/context-capture.ts:36-76`
+
+## Use Cases
+
+### 1. Project Context Building
+
+**Scenario**: Working on multiple projects throughout the day
+
+**Benefit**: Tabby automatically learns which projects you're active on, what technologies you're using, and current progress without manual logging.
+
+### 2. Meeting Context Capture
+
+**Scenario**: Video calls with shared screens or presentations
+
+**Benefit**: Key discussion points, shared diagrams, and meeting content are captured and linked to episodic memories.
+
+### 3. Learning & Research
+
+**Scenario**: Reading documentation, tutorials, or technical articles
+
+**Benefit**: Important concepts and procedures are extracted and stored as semantic/procedural memories for later reference.
+
+### 4. Interview Preparation
+
+**Scenario**: Practicing coding problems on LeetCode or similar platforms
+
+**Benefit**: Problems attempted, approaches used, and solutions are captured to build a knowledge base of interview prep.
+
+### 5. Design Review
+
+**Scenario**: Reviewing UI mockups, wireframes, or design systems
+
+**Benefit**: Visual design decisions and iterations are captured, helping Tabby understand your design preferences and current projects.
+
+## Cost Management
+
+### Estimating Costs
+
+GPT-4.1-nano vision pricing (approximate):
+- **Per image**: ~$0.0015 - $0.003 (varies by image size)
+- **60 captures/hour**: ~$0.09 - $0.18 per hour
+- **8 hour workday**: ~$0.72 - $1.44 per day
+- **Monthly (20 workdays)**: ~$14.40 - $28.80
+
+<Info>
+Actual costs depend on your OpenAI pricing tier and image complexity. Monitor usage in your OpenAI dashboard.
+</Info>
+
+### Optimization Strategies
+
+1. **Increase Interval**: Set `intervalMs` to 120000 (2 minutes) instead of 60000
+2. **Longer Idle Threshold**: Set `idleThresholdMs` to 300000 (5 minutes) to skip more captures
+3. **Selective Enabling**: Only enable during active work sessions, disable during reading/browsing
+4. **Manual Capture**: Disable auto-capture, use manual screenshot capture when needed (future feature)
+5. **Filter by Activity**: Future enhancement to skip captures of inactive windows or screensavers
+
+## Troubleshooting
+
+### Capture Not Working
+
+**Check:**
+- Context Capture is enabled in Brain Panel (green eye icon)
+- System is not idle for more than threshold duration
+- Console logs show `[ContextCapture] Starting...`
+- No errors in Electron main process logs
+
+### Analysis Failing
+
+**Check:**
+- Memory API is running (`http://localhost:8000/`)
+- OpenAI API key is configured in backend `.env`
+- Supabase storage bucket `context-captures` exists and is public
+- Network connectivity to Supabase and OpenAI
+- Console shows `[BrainPanel] Memory result: { success: true }`
+
+### High API Costs
+
+**Solutions:**
+- Increase capture interval (120s or 180s instead of 60s)
+- Increase idle threshold (300s instead of 60s)
+- Disable capture during breaks and non-work hours
+- Monitor OpenAI usage dashboard for actual costs
+- Consider using only during high-value activities
+
+### Memory Not Appearing
+
+**Check:**
+- Wait for auto-refresh (30 seconds) or manually refresh Brain Panel
+- Verify memory was stored: console should show success result
+- Check Memory API logs for errors
+- Ensure user is logged in (user ID must be present)
+
+## Best Practices
+
+1. **Start Conservatively**: Begin with 2-minute intervals and adjust based on value vs. cost
+2. **Use Idle Detection**: Keep default 60s threshold to avoid wasteful captures
+3. **Toggle Strategically**: Enable during active coding/research, disable during meetings or browsing
+4. **Monitor Costs**: Check OpenAI usage weekly to understand actual spending
+5. **Privacy Awareness**: Disable when working with sensitive data
+6. **Combine with Manual Memory**: Use both auto-capture and manual memory addition for comprehensive context
+7. **Review Captured Memories**: Periodically check what's being captured to ensure quality and relevance

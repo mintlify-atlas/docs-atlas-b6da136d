@@ -1,0 +1,399 @@
+---
+title: Voice Commands
+description: Quick voice-triggered actions and keyboard shortcuts for efficient hands-free operation
+---
+
+Voice Commands provide quick, context-aware actions you can trigger through voice input, complementing the full Voice Agent experience.
+
+## Overview
+
+While the Voice Agent provides conversational AI interaction, Voice Commands offer instant execution of predefined actions through simple voice triggers.
+
+## Global Voice Shortcuts
+
+### Primary Voice Controls
+
+<CardGroup cols={2}>
+  <Card title="Voice Agent" icon="microphone">
+    <kbd>Ctrl+Alt+J</kbd>
+    
+    Launch the full Voice Agent for conversational AI interaction
+  </Card>
+  <Card title="Voice Transcription" icon="closed-captioning">
+    <kbd>Ctrl+Alt+T</kbd>
+    
+    Toggle voice-to-text transcription mode
+  </Card>
+  <Card title="Cycle Transcribe Modes" icon="rotate">
+    <kbd>Ctrl+Shift+T</kbd>
+    
+    Switch between paste, typewriter, and buffer modes
+  </Card>
+  <Card title="Stop Auto-typing" icon="stop">
+    <kbd>Ctrl+Shift+X</kbd>
+    
+    Immediately halt any ongoing AI typing
+  </Card>
+</CardGroup>
+
+## Built-in Voice Actions
+
+These actions are available when the Voice Agent is active:
+
+### System Commands
+
+<AccordionGroup>
+  <Accordion title="Change Theme" icon="palette">
+    **Voice trigger**: "Change the theme to [light/dark]"
+    
+    Switches the Tabby interface between light and dark mode.
+    
+    <CodeGroup>
+    ```typescript Implementation
+    {
+      name: 'changeBrowserTheme',
+      type: 'function',
+      description: 'Change the browser theme',
+      parameters: {
+        type: 'object',
+        properties: {
+          theme: {
+            type: 'string',
+            enum: ['light', 'dark']
+          }
+        },
+        required: ['theme']
+      }
+    }
+    ```
+    </CodeGroup>
+  </Accordion>
+
+  <Accordion title="End Conversation" icon="phone-slash">
+    **Voice trigger**: "End conversation" / "Hang up" / "Goodbye"
+    
+    Gracefully ends the voice session and closes the agent.
+    
+    <CodeGroup>
+    ```typescript Implementation
+    {
+      name: 'endConversation',
+      type: 'function',
+      description: 'End the current voice conversation',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: []
+      }
+    }
+    ```
+    </CodeGroup>
+  </Accordion>
+</AccordionGroup>
+
+### Desktop Automation Commands
+
+When Windows MCP is enabled, these voice commands are available:
+
+<Tabs>
+  <Tab title="Application Control">
+    <ResponseField name="Open Applications" type="voice">
+      "Open Chrome" / "Launch VS Code" / "Start Notepad"
+      
+      Uses Powershell-Tool to launch applications quickly.
+    </ResponseField>
+    
+    <ResponseField name="Switch Applications" type="voice">
+      "Switch to Chrome" / "Focus on VS Code"
+      
+      Uses App-Tool to activate running applications.
+    </ResponseField>
+    
+    <ResponseField name="Close Applications" type="voice">
+      "Close Chrome" / "Quit Notepad"
+      
+      Uses process management to terminate applications.
+    </ResponseField>
+  </Tab>
+  
+  <Tab title="File & Folder">
+    <ResponseField name="Open Files" type="voice">
+      "Open the file at C:\\Users\\Documents\\notes.txt"
+      
+      Opens files in their default application.
+    </ResponseField>
+    
+    <ResponseField name="Open Folders" type="voice">
+      "Open my downloads folder" / "Show me my documents"
+      
+      Opens folders in File Explorer.
+    </ResponseField>
+    
+    <ResponseField name="Open in VS Code" type="voice">
+      "Open my project folder in VS Code"
+      
+      Launches VS Code with specified directory.
+    </ResponseField>
+  </Tab>
+  
+  <Tab title="Web & URLs">
+    <ResponseField name="Open URLs" type="voice">
+      "Go to google.com" / "Open github.com in browser"
+      
+      Opens URLs in your default browser.
+    </ResponseField>
+    
+    <ResponseField name="Search Web" type="voice">
+      "Search for AI keyboard shortcuts"
+      
+      Uses Tavily to search and read results aloud.
+    </ResponseField>
+  </Tab>
+  
+  <Tab title="Clipboard">
+    <ResponseField name="Copy Text" type="voice">
+      "Copy this: Hello World"
+      
+      Sets clipboard content via PowerShell.
+    </ResponseField>
+    
+    <ResponseField name="Paste" type="voice">
+      "Paste" / "Insert clipboard"
+      
+      Triggers Ctrl+V shortcut.
+    </ResponseField>
+    
+    <ResponseField name="Read Clipboard" type="voice">
+      "What's on my clipboard?"
+      
+      Retrieves and reads clipboard content.
+    </ResponseField>
+  </Tab>
+</Tabs>
+
+## Workflow Automation
+
+Create custom voice-triggered workflows by training the Voice Agent:
+
+<Steps>
+  <Step title="Describe Your Workflow">
+    Tell the agent about your routine:
+    
+    "Every morning I open Slack, Gmail in Chrome, and VS Code with my project folder."
+  </Step>
+  
+  <Step title="Agent Stores as Memory">
+    The agent saves this as a procedural memory with type PROCEDURAL.
+  </Step>
+  
+  <Step title="Trigger Workflow">
+    Next time, just say:
+    
+    "Prep my workspace" / "Start my day" / "Set up my environment"
+    
+    The agent executes the stored workflow automatically.
+  </Step>
+</Steps>
+
+### Example Workflows
+
+<CodeGroup>
+```plaintext Development Setup
+User: "When I say 'dev mode', open VS Code in my projects folder, 
+       start the terminal, and open Chrome with localhost:3000"
+
+[Agent stores workflow]
+
+User: "Dev mode"
+[Agent executes all steps]
+```
+
+```plaintext Meeting Prep
+User: "Before meetings, I open Teams, OneNote, and my calendar"
+
+[Agent stores workflow]
+
+User: "Prep for meeting"
+[Agent opens all applications]
+```
+
+```plaintext Writing Mode
+User: "Writing mode means opening Notion, playing focus music on Spotify, 
+       and turning on do not disturb"
+
+[Agent stores workflow]
+
+User: "Writing mode"
+[Agent executes sequence]
+```
+</CodeGroup>
+
+## Memory-Based Commands
+
+The Voice Agent remembers context across sessions:
+
+<AccordionGroup>
+  <Accordion title="Personal Context" icon="user">
+    **Example**: After telling the agent your name is Sarah:
+    
+    User: "What's my name?"
+    
+    Agent: "Your name is Sarah."
+    
+    The agent searches memories first before responding to any query.
+  </Accordion>
+
+  <Accordion title="Preferences" icon="sliders">
+    **Example**: After expressing preference:
+    
+    User: "I prefer dark mode"
+    
+    [Agent stores preference]
+    
+    Later: "Set my theme"
+    
+    [Agent applies dark mode based on stored preference]
+  </Accordion>
+
+  <Accordion title="Technical Stack" icon="code">
+    **Example**: Sharing your tech stack:
+    
+    User: "I work with React, TypeScript, and Tailwind CSS"
+    
+    [Agent stores technical preferences]
+    
+    Later: "Create a new component"
+    
+    [Agent generates React + TypeScript + Tailwind component]
+  </Accordion>
+</AccordionGroup>
+
+## Creating Custom Commands
+
+You can extend voice commands by adding custom tools to the MCP server or creating new functions in the Voice Agent API.
+
+### Custom Tool Template
+
+<CodeGroup>
+```typescript Custom Voice Tool
+{
+  type: 'function',
+  name: 'customAction',
+  description: 'Description of what this action does',
+  parameters: {
+    type: 'object',
+    properties: {
+      param1: {
+        type: 'string',
+        description: 'Description of parameter'
+      }
+    },
+    required: ['param1']
+  }
+}
+```
+</CodeGroup>
+
+Add your tool to `DEFAULT_VOICE_TOOLS` array in `/lib/ai/voice/index.ts`.
+
+### Tool Execution Handler
+
+Implement the execution logic in the Voice Agent hook:
+
+<CodeGroup>
+```typescript Handle Custom Tool
+case "customAction":
+  // Your custom logic here
+  console.log(toolArgs.param1);
+  // Perform action
+  break;
+```
+</CodeGroup>
+
+## Command Best Practices
+
+<Tip>
+  For reliable voice command recognition:
+  
+  1. **Be specific**: "Open Chrome" vs "Open browser"
+  2. **Use natural language**: "What's the weather?" vs "Weather query"
+  3. **Avoid ambiguity**: "Open my main project" (after teaching the agent which project)
+  4. **Build context**: Let the agent learn your preferences over time
+  5. **Confirm actions**: The agent will acknowledge and execute
+</Tip>
+
+## Keyboard Shortcut Reference
+
+<CardGroup cols={3}>
+  <Card title="Voice Agent" icon="microphone">
+    <kbd>Ctrl+Alt+J</kbd>
+  </Card>
+  <Card title="Transcription" icon="closed-captioning">
+    <kbd>Ctrl+Alt+T</kbd>
+  </Card>
+  <Card title="Cycle Modes" icon="rotate">
+    <kbd>Ctrl+Shift+T</kbd>
+  </Card>
+  <Card title="Stop Typing" icon="stop">
+    <kbd>Ctrl+Shift+X</kbd>
+  </Card>
+  <Card title="Actions Menu" icon="bars">
+    <kbd>Ctrl+\\</kbd>
+  </Card>
+  <Card title="Brain Panel" icon="brain">
+    <kbd>Ctrl+Shift+B</kbd>
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Voice not recognized" icon="microphone-slash">
+    - Check microphone permissions in browser settings
+    - Verify microphone is selected as default input device
+    - Test microphone in browser console: `navigator.mediaDevices.getUserMedia({ audio: true })`
+    - Reduce background noise
+  </Accordion>
+
+  <Accordion title="Commands not executing" icon="exclamation-triangle">
+    - Ensure Windows MCP server is running (for desktop automation)
+    - Check API keys are properly configured
+    - Verify memory backend is accessible at localhost:8000
+    - Review browser console for error messages
+  </Accordion>
+
+  <Accordion title="Agent doesn't remember" icon="brain">
+    - Confirm memory backend is running
+    - Check Supabase connection for vector storage
+    - Verify Neo4j connection (if using knowledge graph)
+    - Try explicitly saying "Remember that" after sharing information
+  </Accordion>
+</AccordionGroup>
+
+## Requirements
+
+<Warning>
+  Voice Commands require:
+  - OpenAI API key (for Voice Agent)
+  - Groq API key (for Transcription)
+  - Microphone permissions
+  - (Optional) Windows MCP server for desktop automation
+  - (Optional) Memory backend for persistent context
+</Warning>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Voice Agent" icon="robot" href="/features/voice/voice-agent">
+    Full conversational AI voice assistant
+  </Card>
+  <Card title="Voice Transcription" icon="microphone" href="/features/voice/transcription">
+    Speech-to-text for typing in any app
+  </Card>
+  <Card title="Action Menu" icon="bolt" href="/features/ai-assistance/action-menu">
+    Quick AI actions triggered by keyboard
+  </Card>
+  <Card title="Brain Panel" icon="brain" href="/features/memory/brain-panel">
+    Memory dashboard and management
+  </Card>
+</CardGroup>

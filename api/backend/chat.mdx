@@ -1,0 +1,220 @@
+---
+title: "Chat"
+description: "Stream conversational AI responses with memory, tool calling, and desktop automation"
+---
+
+## Overview
+
+The `/api/chat` endpoint provides a streaming conversational AI interface with access to memory storage, web search, and powerful Windows MCP tools for desktop automation. This endpoint supports multi-turn conversations with persistent memory and tool calling capabilities.
+
+<Note>
+This endpoint returns Server-Sent Events (SSE) for streaming responses.
+</Note>
+
+## Endpoint
+
+```
+POST /api/chat
+```
+
+## Authentication
+
+Requires authentication via cookies or Authorization header. Alternatively, accepts `userId` in request body for internal calls.
+
+<Warning>
+Returns `401 Unauthorized` if authentication fails.
+</Warning>
+
+## Request Body
+
+<ParamField body="messages" type="UIMessage[]" required>
+  Array of conversation messages. Each message should follow the AI SDK UIMessage format with `role`, `content`, and optional `parts`.
+  
+  ```typescript
+  interface UIMessage {
+    id: string
+    role: 'user' | 'assistant' | 'system'
+    content: string
+    parts?: any[]
+  }
+  ```
+</ParamField>
+
+<ParamField body="conversationId" type="string">
+  Optional conversation ID for persisting chat history. If provided and the conversation doesn't exist, a new one will be created with an auto-generated title.
+</ParamField>
+
+<ParamField body="model" type="string">
+  Language model to use for the chat. Defaults to the system's default model if not specified.
+  
+  <Expandable title="Supported models">
+    - OpenAI models (gpt-4, gpt-3.5-turbo, etc.)
+    - Anthropic models (claude-3-opus, claude-3-sonnet, etc.)
+    - Custom provider models configured in your setup
+  </Expandable>
+</ParamField>
+
+<ParamField body="userId" type="string">
+  User identifier. Used as fallback if authentication via cookies/headers is not available. Required for internal API calls.
+</ParamField>
+
+## Response
+
+Returns a Server-Sent Events (SSE) stream with JSON payloads containing:
+
+<ResponseField name="type" type="string">
+  Event type. Can be `text`, `tool-call`, `tool-result`, `reasoning`, etc.
+</ResponseField>
+
+<ResponseField name="content" type="string">
+  The actual content based on the event type (text chunk, tool call details, etc.)
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  Unique message or event ID.
+</ResponseField>
+
+## Available Tools
+
+The chat endpoint provides access to several powerful tools:
+
+### Memory Tools
+
+<Expandable title="searchMemory">
+  Search through stored user memories to personalize responses.
+  
+  **Parameters:**
+  - `query` (string): Search query
+  - `userId` (string): User identifier
+  - `memoryType` (optional): Filter by memory type (LONG_TERM, SHORT_TERM, EPISODIC, SEMANTIC, PROCEDURAL)
+  - `limit` (number, optional): Maximum results to return
+</Expandable>
+
+<Expandable title="addMemory">
+  Store new memories about the user for future personalization.
+  
+  **Parameters:**
+  - `messages` (array): Conversation messages to extract memories from
+  - `userId` (string): User identifier
+</Expandable>
+
+<Expandable title="getAllMemories">
+  Retrieve all stored memories for a user.
+  
+  **Parameters:**
+  - `userId` (string): User identifier
+</Expandable>
+
+### Web Search
+
+<Expandable title="tavilySearchTool">
+  Search the web for current information, news, and research.
+  
+  **Parameters:**
+  - `query` (string): Search query
+</Expandable>
+
+### Windows MCP Tools
+
+Desktop automation tools for controlling Windows applications:
+
+- **State-Tool**: Capture current desktop state and interactive elements
+- **Click-Tool**: Click at specific coordinates
+- **Type-Tool**: Type text at coordinates
+- **Move-Tool**: Move mouse cursor
+- **Drag-Tool**: Drag and drop operations
+- **Scroll-Tool**: Scroll at specific locations
+- **Shortcut-Tool**: Execute keyboard shortcuts
+- **App-Tool**: Launch, resize, or switch applications
+- **Powershell-Tool**: Execute PowerShell commands
+- **Wait-Tool**: Pause execution for UI loading
+- **Scrape-Tool**: Fetch content from URLs or browser tabs
+
+<Note>
+MCP tools are dynamically loaded and may vary based on your configuration.
+</Note>
+
+## Example Request
+
+```javascript
+const response = await fetch('/api/chat', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    messages: [
+      {
+        id: '1',
+        role: 'user',
+        content: 'Open VS Code and Chrome for my morning workflow'
+      }
+    ],
+    conversationId: 'conv_123',
+    model: 'gpt-4'
+  })
+});
+
+// Handle SSE stream
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const chunk = decoder.decode(value);
+  const lines = chunk.split('\n');
+  
+  for (const line of lines) {
+    if (line.startsWith('data: ')) {
+      const data = JSON.parse(line.slice(6));
+      console.log(data);
+    }
+  }
+}
+```
+
+## Example Response Stream
+
+```
+data: {"type":"text","content":"I'll","id":"msg_1"}
+
+data: {"type":"text","content":" help","id":"msg_1"}
+
+data: {"type":"tool-call","toolName":"Powershell-Tool","args":{"command":"Start-Process 'code'"}}
+
+data: {"type":"tool-result","result":"VS Code launched successfully"}
+
+data: {"type":"text","content":" you","id":"msg_1"}
+
+data: {"type":"finish","id":"msg_1"}
+```
+
+## Error Responses
+
+<ResponseField name="400 Bad Request" type="error">
+  Returned when `messages` parameter is missing or invalid.
+  
+  ```json
+  "Missing messages"
+  ```
+</ResponseField>
+
+<ResponseField name="401 Unauthorized" type="error">
+  Returned when authentication fails.
+  
+  ```json
+  "Unauthorized"
+  ```
+</ResponseField>
+
+## Features
+
+- **Streaming Responses**: Real-time text generation via SSE
+- **Tool Calling**: Automatic tool invocation with step-by-step reasoning
+- **Memory System**: Persistent user context across conversations
+- **Desktop Automation**: Control Windows applications via MCP tools
+- **Conversation Persistence**: Automatic saving of messages and chat history
+- **Auto-generated Titles**: Conversations are titled based on first user message
+- **Stop Conditions**: Automatically stops after 20 steps to prevent infinite loops

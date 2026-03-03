@@ -1,0 +1,291 @@
+---
+title: Voice Agent
+description: AI-powered voice assistant with real-time conversation, desktop automation, and persistent memory capabilities
+---
+
+The Voice Agent is an intelligent voice assistant integrated directly into Tabby AI Keyboard, enabling hands-free interaction with your system through natural conversation.
+
+## Overview
+
+Voice Agent provides:
+- **Real-time voice conversations** using OpenAI's Realtime API
+- **Desktop automation** via Windows MCP tools
+- **Persistent memory** to remember your preferences and context
+- **Web search** integration for current information
+- **Tool execution** for system-level control
+
+## Activation
+
+<kbd>Ctrl+Alt+J</kbd> - Launch the Voice Agent
+
+Once activated, the agent listens for your voice input and responds naturally in real-time.
+
+## Configuration
+
+### Voice Selection
+
+The agent supports multiple voice options from OpenAI:
+
+<CodeGroup>
+```typescript Available Voices
+{
+  Alloy: 'alloy',
+  Ash: 'ash',        // Default
+  Ballad: 'ballad',
+  Coral: 'coral',
+  Echo: 'echo',
+  Sage: 'sage',
+  Shimmer: 'shimmer',
+  Verse: 'verse'
+}
+```
+</CodeGroup>
+
+### Model Selection
+
+By default, the agent uses `gpt-realtime-mini` for optimal performance and cost-efficiency.
+
+## Core Capabilities
+
+### Desktop Automation
+
+The Voice Agent has access to powerful Windows MCP tools for full desktop control:
+
+<AccordionGroup>
+  <Accordion title="State-Tool" icon="eye">
+    Captures current desktop state including:
+    - Focused application and window dimensions
+    - All opened applications
+    - Interactive elements with coordinates
+    - Scrollable areas
+    
+    **Critical**: Always called first before performing actions to get accurate coordinates.
+  </Accordion>
+
+  <Accordion title="Click-Tool" icon="hand-pointer">
+    Click at specific coordinates with options for:
+    - Left, right, or middle button clicks
+    - Single, double, or triple clicks
+  </Accordion>
+
+  <Accordion title="Type-Tool" icon="keyboard">
+    Type text at specific coordinates with options to:
+    - Clear existing text first
+    - Press Enter after typing
+  </Accordion>
+
+  <Accordion title="Powershell-Tool" icon="terminal">
+    Execute PowerShell commands for:
+    - Opening applications and files
+    - Opening URLs in default browser
+    - File system operations
+    - Process management
+    - System information queries
+  </Accordion>
+
+  <Accordion title="Shortcut-Tool" icon="command">
+    Execute keyboard shortcuts like:
+    - `ctrl+c`, `ctrl+v` (copy/paste)
+    - `alt+tab` (switch windows)
+    - `win+r` (run command)
+  </Accordion>
+
+  <Accordion title="App-Tool" icon="window-maximize">
+    Manage applications:
+    - Launch new applications
+    - Resize and position windows
+    - Switch between running apps
+  </Accordion>
+
+  <Accordion title="Scroll-Tool" icon="arrows-up-down">
+    Scroll in any direction at specified coordinates
+  </Accordion>
+
+  <Accordion title="Move-Tool & Drag-Tool" icon="arrows-alt">
+    Move mouse cursor or drag elements between locations
+  </Accordion>
+
+  <Accordion title="Wait-Tool" icon="clock">
+    Pause execution for UI loading or animations to complete
+  </Accordion>
+
+  <Accordion title="Scrape-Tool" icon="globe">
+    Fetch content from URLs or active browser tabs
+  </Accordion>
+</AccordionGroup>
+
+### Memory System
+
+The Voice Agent maintains persistent memory across conversations:
+
+<CardGroup cols={2}>
+  <Card title="Search Memories" icon="magnifying-glass">
+    Automatically searches for relevant context before responding to understand who you are and what you're working on.
+  </Card>
+  <Card title="Store Memories" icon="database">
+    Saves important information including:
+    - Your name and identity
+    - Role, company, and profession
+    - Technical preferences and skills
+    - Projects and tasks
+    - Communication preferences
+  </Card>
+  <Card title="Retrieve All Memories" icon="list">
+    Access all stored memories for a comprehensive view of your profile.
+  </Card>
+  <Card title="Procedural Memory" icon="gears">
+    Remembers workflows and automates routine tasks like "prep my day" or "start my workspace".
+  </Card>
+</CardGroup>
+
+### Web Search
+
+Integrated with Tavily for real-time web search capabilities to answer questions requiring current information.
+
+## API Endpoints
+
+### Create Voice Agent Session
+
+<CodeGroup>
+```typescript POST /api/voice-agent
+const response = await fetch('/api/voice-agent', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    model: 'gpt-realtime-mini',
+    voice: 'ash'
+  })
+});
+
+const session = await response.json();
+// Returns: OpenAI Realtime session with client_secret
+```
+</CodeGroup>
+
+### Execute Tool
+
+<CodeGroup>
+```typescript POST /api/voice-agent/execute-tool
+const response = await fetch('/api/voice-agent/execute-tool', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    toolName: 'tavilySearchTool',
+    args: {
+      query: 'latest AI news'
+    }
+  })
+});
+
+const result = await response.json();
+```
+</CodeGroup>
+
+## Built-in Voice Commands
+
+<CardGroup cols={2}>
+  <Card title="Change Theme" icon="palette">
+    "Change the browser theme to dark mode"
+    
+    Switches between light and dark themes.
+  </Card>
+  <Card title="End Conversation" icon="phone-slash">
+    "End conversation" or "Hang up"
+    
+    Gracefully ends the voice session.
+  </Card>
+</CardGroup>
+
+## Example Usage
+
+<Steps>
+  <Step title="Start the Agent">
+    Press <kbd>Ctrl+Alt+J</kbd> to launch the Voice Agent. The agent will greet you and start listening.
+  </Step>
+  
+  <Step title="Natural Conversation">
+    Speak naturally: "Open Chrome and search for AI keyboard shortcuts"
+    
+    The agent will:
+    1. Search memories to understand your context
+    2. Use Powershell-Tool to open Chrome
+    3. Use Type-Tool and Click-Tool to perform the search
+  </Step>
+  
+  <Step title="Memory Building">
+    The agent automatically stores facts like:
+    - "User prefers Chrome browser"
+    - "User is interested in keyboard shortcuts"
+  </Step>
+  
+  <Step title="End Session">
+    Say "End conversation" or close the Voice Agent window.
+  </Step>
+</Steps>
+
+## System Prompt Highlights
+
+The Voice Agent is instructed to:
+
+<Note>
+- Speak naturally and conversationally (avoid markdown, bullet points, or code blocks)
+- **Always search memories first** before responding
+- **Aggressively store new information** shared during conversations
+- Prioritize user identity (name, role, preferences)
+- Use PowerShell for fast execution when opening apps/files/URLs
+- Be cost-conscious (avoid expensive vision tools unless necessary)
+</Note>
+
+## Advanced Features
+
+### Workflow Automation
+
+Train the agent to automate your daily routines:
+
+<CodeGroup>
+```plaintext Example Workflow
+You: "Every morning, I open Slack, Chrome with Gmail, and VS Code in my projects folder"
+
+[Agent stores this as procedural memory]
+
+Next day:
+You: "Prep my workspace"
+
+[Agent executes stored workflow automatically]
+```
+</CodeGroup>
+
+### Real-time Communication
+
+The Voice Agent uses WebRTC for low-latency, bidirectional audio streaming:
+
+- Audio input captured via microphone
+- Transcription via OpenAI Whisper
+- Response generation via GPT Realtime API
+- Audio output played directly in browser
+
+## Requirements
+
+<Warning>
+  Voice Agent requires:
+  - OpenAI API key with Realtime API access
+  - Microphone permissions
+  - Modern browser with WebRTC support
+  - (Optional) Windows MCP server for desktop automation
+  - (Optional) Memory backend running on localhost:8000
+</Warning>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Voice Transcription" icon="microphone" href="/features/voice/transcription">
+    Convert speech to text for typing in any application
+  </Card>
+  <Card title="Voice Commands" icon="terminal" href="/features/voice/commands">
+    Execute quick actions via voice shortcuts
+  </Card>
+</CardGroup>

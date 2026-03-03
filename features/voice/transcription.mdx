@@ -1,0 +1,275 @@
+---
+title: Voice Transcription
+description: Real-time speech-to-text conversion powered by Groq's Whisper for fast, accurate typing in any application
+---
+
+Voice Transcription enables you to dictate text directly into any application using state-of-the-art speech recognition.
+
+## Overview
+
+Tabby's voice transcription feature uses Groq's Whisper Large v3 model to convert your speech into text with high accuracy and speed.
+
+### Key Features
+
+<CardGroup cols={2}>
+  <Card title="Fast Processing" icon="bolt">
+    Powered by Groq's optimized infrastructure for near-instant transcription
+  </Card>
+  <Card title="High Accuracy" icon="bullseye">
+    Uses Whisper Large v3, one of the most accurate transcription models available
+  </Card>
+  <Card title="Multi-language" icon="globe">
+    Supports transcription in multiple languages with automatic detection
+  </Card>
+  <Card title="System-wide" icon="window-maximize">
+    Works in any application - text editors, browsers, messaging apps, etc.
+  </Card>
+</CardGroup>
+
+## Activation
+
+<kbd>Ctrl+Alt+T</kbd> - Toggle voice transcription on/off
+
+<kbd>Ctrl+Shift+T</kbd> - Cycle through transcription modes
+
+When activated, speak into your microphone and the transcribed text will appear in the active application.
+
+## How It Works
+
+<Steps>
+  <Step title="Capture Audio">
+    When you press the transcription hotkey, Tabby starts capturing audio from your microphone in WebM format.
+  </Step>
+  
+  <Step title="Send to API">
+    The audio buffer is encoded as base64 and sent to the transcription API endpoint.
+  </Step>
+  
+  <Step title="Transcribe with Groq">
+    The API uses Groq's Whisper Large v3 model to convert speech to text.
+  </Step>
+  
+  <Step title="Output Text">
+    The transcribed text is returned and typed into your active application using Tabby's typewriter mode.
+  </Step>
+</Steps>
+
+## API Endpoint
+
+### Transcribe Audio
+
+<CodeGroup>
+```typescript POST /api/transcribe
+const response = await fetch('/api/transcribe', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    audio: 'data:audio/webm;base64,AUDIO_DATA_HERE'
+  })
+});
+
+const result = await response.json();
+// Returns: { text, language, duration }
+```
+
+```typescript Response Format
+{
+  text: "The transcribed text from your speech",
+  language: "en",
+  duration: 3.5  // Duration in seconds
+}
+```
+</CodeGroup>
+
+### Request Format
+
+<ParamField path="audio" type="string" required>
+  Audio data in one of two formats:
+  - Data URL: `data:audio/webm;base64,<BASE64_DATA>`
+  - Raw base64 string (will be auto-detected)
+</ParamField>
+
+### Response Fields
+
+<ResponseField name="text" type="string">
+  The transcribed text from the audio input
+</ResponseField>
+
+<ResponseField name="language" type="string">
+  Detected language code (e.g., "en" for English, "es" for Spanish)
+</ResponseField>
+
+<ResponseField name="duration" type="number">
+  Duration of the audio clip in seconds
+</ResponseField>
+
+## Implementation Details
+
+### Audio Format
+
+Tabby captures audio in WebM format using the browser's MediaRecorder API:
+
+<CodeGroup>
+```typescript Audio Capture
+const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+const mediaRecorder = new MediaRecorder(stream, {
+  mimeType: 'audio/webm'
+});
+
+mediaRecorder.ondataavailable = (event) => {
+  // Convert blob to base64
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    const base64Audio = reader.result; // data:audio/webm;base64,...
+    // Send to transcription API
+  };
+  reader.readAsDataURL(event.data);
+};
+```
+</CodeGroup>
+
+### Processing Pipeline
+
+The transcription API processes audio through the following pipeline:
+
+1. **Parse data URL** - Extract MIME type and base64 data
+2. **Decode base64** - Convert to Uint8Array binary format
+3. **Send to Groq** - Use AI SDK's `experimental_transcribe` function
+4. **Return results** - Text, language, and duration
+
+<CodeGroup>
+```typescript API Implementation
+import { experimental_transcribe as transcribe } from 'ai'
+import { createGroq } from '@ai-sdk/groq'
+
+const groq = createGroq({
+  apiKey: process.env.GROQ_API_KEY,
+})
+
+const result = await transcribe({
+  model: groq.transcription('whisper-large-v3'),
+  audio: audioData,  // Uint8Array
+})
+
+console.log(result.text)
+console.log(result.language)
+console.log(result.durationInSeconds)
+```
+</CodeGroup>
+
+## Transcription Modes
+
+Cycle through different modes using <kbd>Ctrl+Shift+T</kbd>:
+
+<Tabs>
+  <Tab title="Direct Paste">
+    Transcribed text is pasted directly at cursor position (fastest)
+  </Tab>
+  <Tab title="Typewriter">
+    Text is typed character-by-character to appear natural
+  </Tab>
+  <Tab title="Buffer">
+    Text is collected in a buffer for review before inserting
+  </Tab>
+</Tabs>
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Writing Documents" icon="file-text">
+    Dictate long-form content faster than typing
+  </Card>
+  <Card title="Coding Comments" icon="code">
+    Quickly add documentation and comments to your code
+  </Card>
+  <Card title="Messaging" icon="message">
+    Compose emails and chat messages hands-free
+  </Card>
+  <Card title="Accessibility" icon="universal-access">
+    Enable keyboard-free text input for users with mobility limitations
+  </Card>
+</CardGroup>
+
+## Best Practices
+
+<Tip>
+  For optimal transcription accuracy:
+  - Speak clearly and at a moderate pace
+  - Use a good quality microphone
+  - Minimize background noise
+  - Pause briefly between sentences
+  - Speak punctuation when needed ("comma", "period", "question mark")
+</Tip>
+
+## Accuracy Tips
+
+Whisper Large v3 is trained to recognize punctuation commands:
+
+<CodeGroup>
+```plaintext Spoken
+"Hello world comma how are you today question mark"
+
+Transcribed:
+"Hello world, how are you today?"
+```
+
+```plaintext Spoken
+"Open parenthesis note colon this is important close parenthesis period"
+
+Transcribed:
+"(Note: This is important)."
+```
+</CodeGroup>
+
+## Requirements
+
+<Warning>
+  Voice Transcription requires:
+  - Groq API key with Whisper API access
+  - Microphone permissions in your browser
+  - Active internet connection for API calls
+</Warning>
+
+### Environment Setup
+
+Add your Groq API key to the backend environment:
+
+<CodeGroup>
+```env nextjs-backend/.env.local
+GROQ_API_KEY="your-groq-api-key-here"
+```
+</CodeGroup>
+
+## Error Handling
+
+The transcription API handles various error conditions:
+
+<ResponseField name="error" type="string">
+  Error message when transcription fails:
+  - `"No audio data provided"` - Missing audio parameter
+  - `"Transcription failed"` - Groq API error
+  - Network errors or API rate limits
+</ResponseField>
+
+## Performance
+
+<Info>
+  Groq's infrastructure provides exceptional performance:
+  - **Latency**: Typically 200-500ms for transcription
+  - **Accuracy**: 95%+ word accuracy for clear speech
+  - **Languages**: Supports 50+ languages
+  - **Audio length**: Handles clips from 1 second to several minutes
+</Info>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Voice Agent" icon="robot" href="/features/voice/voice-agent">
+    Interactive voice assistant with desktop automation
+  </Card>
+  <Card title="Voice Commands" icon="terminal" href="/features/voice/commands">
+    Execute quick actions via voice shortcuts
+  </Card>
+</CardGroup>

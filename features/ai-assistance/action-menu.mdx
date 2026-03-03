@@ -1,0 +1,234 @@
+---
+title: "Action Menu"
+description: "Quick AI transformations and chat mode accessible from anywhere with Ctrl+\\"
+---
+
+## Overview
+
+The Action Menu is Tabby's command palette for AI-powered text transformations. Trigger it with `Ctrl+\` on any selected text to instantly access grammar fixes, tone changes, text expansion, and more.
+
+<Info>
+  The Action Menu works system-wide across all applications - from code editors to email clients to messaging apps.
+</Info>
+
+## Opening the Action Menu
+
+| Shortcut    | Action                              |
+| ----------- | ----------------------------------- |
+| `Ctrl+\`    | Open action menu with selected text |
+| `Tab`       | Quick AI chat mode                  |
+| `Alt+[Key]` | Trigger specific action             |
+
+### Basic Usage
+
+1. **Select text** in any application
+2. Press `Ctrl+\` to open the Action Menu
+3. **Search or navigate** with arrow keys to find an action
+4. Press `Enter` to execute, or use `Alt+[Key]` shortcuts for instant access
+
+<CodeGroup>
+```typescript frontend/src/components/action-menu/action-menu.tsx
+const handleActionSelect = useCallback(
+  async (action: Action) => {
+    if (action.id === "chat") {
+      setShowChatMode(true);
+      return;
+    }
+
+    setCurrentAction(action);
+    setMessages([]);
+
+    const prompt = getActionPrompt(action);
+    sendMessage(
+      {
+        parts: [{
+          type: "text",
+          text: selectedText
+        }]
+      },
+      {
+        body: { action: action.id as ActionType, customPrompt: prompt },
+      }
+    );
+  },
+  [sendMessage, selectedText, setMessages]
+);
+```
+</CodeGroup>
+
+## Layout Modes
+
+The Action Menu supports two layout modes:
+
+<Tabs>
+  <Tab title="Command Palette">
+    **Default mode** - A searchable list interface similar to VS Code's command palette.
+    
+    - Search actions by name
+    - Navigate with arrow keys
+    - See keyboard shortcuts at a glance
+    - Perfect for keyboard-driven workflows
+  </Tab>
+  
+  <Tab title="Homescreen">
+    **Grid layout** - Visual card-based interface for browsing AI agents and actions.
+    
+    - Visual icons for each action
+    - Grouped by category (Agents vs Actions)
+    - Click or use shortcuts to select
+    - Better for mouse-driven workflows
+  </Tab>
+</Tabs>
+
+Toggle between modes by clicking the grid icon in the bottom toolbar.
+
+## Keyboard Navigation
+
+The Action Menu is fully keyboard-accessible:
+
+| Key           | Action                    |
+| ------------- | ------------------------- |
+| `↑` / `↓`     | Navigate through actions  |
+| `Enter`       | Select highlighted action |
+| `Esc`         | Close menu or go back     |
+| `Tab`         | Open Quick AI chat mode   |
+| `Alt+[Key]`   | Direct action shortcut    |
+
+<Tip>
+  Use the search bar to quickly filter actions. Type a few letters to narrow down the list.
+</Tip>
+
+## Action Groups
+
+Actions are organized into two main groups:
+
+### AI Agents
+
+Interactive, multi-turn AI assistants:
+
+- **Chat Mode** (`Alt+H`) - Free-form conversation with context
+- **Interview Copilot** (`Alt+I`) - Coding interview assistance with screen capture
+- **Text Agent** (`Alt+T`) - Quick text transformations and AI tools
+- **Voice Agent** (`Alt+V`) - Real-time voice conversation
+
+### AI Actions
+
+Single-shot text transformations (see [Text Transformations](/features/ai-assistance/text-transformations)).
+
+## Quick AI Chat Mode
+
+Press `Tab` from the Action Menu to enter **Quick AI Chat**:
+
+- Free-form conversation with AI
+- Full context of your selected text
+- Multi-turn dialogue support
+- Memory-enhanced responses
+
+<CodeGroup>
+```tsx frontend/src/components/action-menu/chat-panel.tsx
+export function ChatPanel({
+  selectedText,
+  onBack,
+  onClose,
+}: ChatPanelProps) {
+  const { messages, status, sendMessage } = useChat({
+    transport: createAuthenticatedChatTransport("/api/completion"),
+    generateId: () => generateUUID(),
+  });
+
+  // Chat interface with message history and input
+  return (
+    <div className="flex h-full flex-col">
+      <MessageList messages={messages} />
+      <ChatInput onSend={sendMessage} />
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+## Custom Prompts
+
+The **Custom Prompt** action (`Alt+K`) lets you define your own transformation:
+
+1. Select the Custom Prompt action
+2. Enter your instruction (e.g., "Make this sound more confident")
+3. Press `Enter` to apply
+
+Your custom prompts are saved and can be reused for similar transformations.
+
+<Warning>
+  Custom prompts are stored locally and will only be available on the current device.
+</Warning>
+
+## Result Panel
+
+After selecting an action, the Result Panel shows:
+
+- **Original text** for reference
+- **AI-generated output** with streaming support
+- **Action buttons**: Copy, Paste, Regenerate
+
+| Key     | Action                              |
+| ------- | ----------------------------------- |
+| `Enter` | Paste result into original location |
+| `Esc`   | Go back to action selection         |
+
+## Toolbar Features
+
+The bottom toolbar provides quick access to:
+
+- **Settings** - Configure AI models, shortcuts, and preferences
+- **Theme toggle** - Switch between light and dark mode
+- **Layout toggle** - Switch between command palette and homescreen
+- **Invisibility mode** - Hide from screen recorders (useful for interviews)
+
+<Info>
+  Invisibility mode uses content protection APIs to prevent screen recording software from capturing the Action Menu window.
+</Info>
+
+## API Integration
+
+The Action Menu communicates with the completion API:
+
+<CodeGroup>
+```typescript nextjs-backend/src/app/api/completion/route.ts
+export async function POST(req: Request) {
+  const { messages, action, customPrompt, userId } = await req.json();
+
+  // Use custom prompt if provided
+  const systemPrompt = customPrompt
+    ? `${customPrompt}\n\n${getSystemPrompt(userId)}`
+    : getSystemPrompt(userId);
+
+  const stream = createUIMessageStream({
+    generateId: generateUUID,
+    execute: async ({ writer: dataStream }) => {
+      const result = streamText({
+        model: myProvider.languageModel(defaultModel),
+        system: systemPrompt,
+        messages: modelMessages,
+        tools: {
+          tavilySearchTool,
+          addMemory: addMemoryTool,
+          searchMemory: searchMemoryTool,
+        },
+        stopWhen: stepCountIs(20),
+      });
+
+      dataStream.merge(result.toUIMessageStream({
+        sendReasoning: true,
+      }));
+    },
+  });
+
+  return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
+}
+```
+</CodeGroup>
+
+## See Also
+
+- [Text Transformations](/features/ai-assistance/text-transformations) - Details on individual transformation actions
+- [AI Suggestions](/features/ai-assistance/suggestions) - Context-aware autocomplete system
+- [Keyboard Shortcuts](/shortcuts/overview) - Complete shortcut reference

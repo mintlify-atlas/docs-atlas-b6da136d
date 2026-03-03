@@ -1,0 +1,293 @@
+---
+title: "AI Suggestions"
+description: "Context-aware text completions powered by persistent memory and intelligent inference"
+---
+
+## Overview
+
+AI Suggestions provide **inline completions** based on your current context - whether you're typing a message, writing code, or drafting an email. The system learns from your writing style and remembers your preferences to deliver increasingly personalized suggestions.
+
+<Info>
+  Suggestions are powered by a persistent memory system that remembers facts about you, your projects, and your writing style across sessions.
+</Info>
+
+## Triggering Suggestions
+
+| Shortcut     | Action                                |
+| ------------ | ------------------------------------- |
+| `Ctrl+Space` | Get AI suggestion for current context |
+
+Two modes are available:
+
+<Tabs>
+  <Tab title="Hotkey Mode">
+    **Manual trigger** - Press `Ctrl+Space` when you want a suggestion.
+    
+    - Full control over when suggestions appear
+    - Lower resource usage
+    - Best for focused writing sessions
+  </Tab>
+  
+  <Tab title="Auto Mode">
+    **Clipboard watcher** - Automatically monitors clipboard changes and offers suggestions.
+    
+    - Suggestions appear as you copy/paste text
+    - Seamless workflow integration
+    - Requires clipboard monitoring permission
+  </Tab>
+</Tabs>
+
+## How It Works
+
+The suggestion system follows a three-step workflow:
+
+### 1. Memory Search (Mandatory)
+
+Before generating any suggestion, the system **always searches your memory** to personalize the output:
+
+<CodeGroup>
+```typescript nextjs-backend/src/app/api/suggest/route.ts
+const getSystemPrompt = (userId: string) => `
+You are a SENTENCE COMPLETION engine with PERSISTENT MEMORY.
+
+## MANDATORY WORKFLOW
+
+### STEP 1: ALWAYS SEARCH MEMORY FIRST (REQUIRED)
+Before generating ANY text, you MUST call searchMemory.
+This is NOT optional.
+
+Call: searchMemory({
+  query: "<extract keywords from user input>",
+  userId: "${userId}",
+  limit: 5
+})
+
+Examples:
+- User types "My name is" → searchMemory({ query: "name", userId })
+- User types "I'm working on" → searchMemory({ query: "project work", userId })
+- User types "My favorite" → searchMemory({ query: "favorite preferences", userId })
+`;
+```
+</CodeGroup>
+
+### 2. Generate Completion
+
+Using the retrieved memories, the AI completes your sentence naturally:
+
+- Includes your original text plus continuation
+- Uses memory context for personalization (names, preferences, projects)
+- 1-3 sentences maximum
+- No quotes, no questions - just natural completions
+
+### 3. Store New Facts
+
+If your input reveals new information, the system stores it for future suggestions:
+
+<CodeGroup>
+```typescript Memory Storage Example
+// User types: "My name is Avinash and I"
+
+// Step 1: Search memory
+await searchMemory({ query: "name Avinash", userId, limit: 5 });
+
+// Step 2: Generate completion
+// Output: "My name is Avinash and I am a passionate developer
+//          working on innovative projects."
+
+// Step 3: Store the fact
+await addMemory({
+  messages: [{ role: "user", content: "My name is Avinash" }],
+  userId
+});
+```
+</CodeGroup>
+
+## Memory-Enhanced Personalization
+
+The suggestion engine remembers:
+
+<CardGroup cols={2}>
+  <Card title="Personal Details" icon="user">
+    - Your name, role, and profession
+    - Location and time zone
+    - Contact information
+  </Card>
+  
+  <Card title="Writing Style" icon="pen">
+    - Tone preferences (formal/casual)
+    - Verbosity (concise/detailed)
+    - Common phrases and terminology
+  </Card>
+  
+  <Card title="Projects & Tools" icon="code">
+    - Technologies you work with
+    - Project names and details
+    - Frameworks and libraries
+  </Card>
+  
+  <Card title="Preferences" icon="star">
+    - Email signatures
+    - Greetings and sign-offs
+    - Domain-specific knowledge
+  </Card>
+</CardGroup>
+
+## API Implementation
+
+The suggest endpoint uses streaming responses with tool calls:
+
+<CodeGroup>
+```typescript nextjs-backend/src/app/api/suggest/route.ts
+export async function POST(req: Request) {
+  const { messages, model, userId } = await req.json();
+  
+  const modelMessages = await convertToModelMessages(messages);
+
+  const stream = createUIMessageStream({
+    generateId: generateUUID,
+    execute: async ({ writer: dataStream }) => {
+      const result = streamText({
+        model: myProvider.languageModel(model || defaultFastModel),
+        system: getSystemPrompt(userId),
+        messages: modelMessages,
+        tools: {
+          addMemory: addMemoryTool,
+          searchMemory: searchMemoryTool,
+          getAllMemories: getAllMemoriesTool,
+        },
+        stopWhen: stepCountIs(6),
+      });
+
+      dataStream.merge(result.toUIMessageStream({
+        sendReasoning: true,
+      }));
+    },
+  });
+
+  return new Response(stream.pipeThrough(new JsonToSseTransformStream()));
+}
+```
+</CodeGroup>
+
+## Memory Tools
+
+Three tools power the memory system:
+
+### `searchMemory`
+
+Retrieves relevant facts based on a query:
+
+```typescript
+searchMemory({
+  query: "project work",
+  userId: "user-123",
+  limit: 5
+})
+// Returns: ["Working on Tabby AI Keyboard", "Uses Next.js and Electron", ...]
+```
+
+### `addMemory`
+
+Stores new facts from user input:
+
+```typescript
+addMemory({
+  messages: [{ role: "user", content: "I prefer TypeScript over JavaScript" }],
+  userId: "user-123"
+})
+// Stores: User preference for TypeScript
+```
+
+### `getAllMemories`
+
+Retrieves all stored memories for a user:
+
+```typescript
+getAllMemories({ userId: "user-123" })
+// Returns complete memory graph
+```
+
+## Examples
+
+### Example 1: Name Completion
+
+**Input:** `"My name is Avinash and I"`
+
+**Process:**
+1. Search memory for "name Avinash"
+2. Generate: "My name is Avinash and I am a passionate developer working on innovative projects."
+3. Store the name fact
+
+### Example 2: Project Context
+
+**Input:** `"The project I'm building uses"`
+
+**Process:**
+1. Search memory for "project building technology"
+2. Find: User is working on Tabby with Next.js and Electron
+3. Generate: "The project I'm building uses Next.js and Electron for a seamless cross-platform experience."
+
+### Example 3: Email Signature
+
+**Input:** `"Best regards,"`
+
+**Process:**
+1. Search memory for "email signature name"
+2. Find: User's name is "Avinash" and role is "Software Engineer"
+3. Generate: "Best regards,\nAvinash\nSoftware Engineer"
+
+## Absolute Rules
+
+The suggestion engine follows strict guidelines:
+
+<Check>
+  **Always** call `searchMemory` before any text output
+</Check>
+
+<Check>
+  **Always** call `addMemory` when new personal facts are shared
+</Check>
+
+<Warning>
+  **Never** skip the memory search step - this breaks personalization
+</Warning>
+
+<Warning>
+  **Never** ask questions - you're a completion engine, not a chatbot
+</Warning>
+
+<Warning>
+  **Never** respond without checking memory first
+</Warning>
+
+## Performance Optimization
+
+The system uses several optimizations:
+
+- **Fast models** - Uses `defaultFastModel` for low-latency responses
+- **Limited steps** - `stopWhen: stepCountIs(6)` prevents excessive tool calls
+- **Streaming** - Server-sent events (SSE) for immediate feedback
+- **Caching** - Memory results are cached during the request
+
+<Tip>
+  The more you use suggestions, the smarter they become. The memory system continuously learns from your writing patterns.
+</Tip>
+
+## Privacy & Storage
+
+All memories are stored locally by default:
+
+- **Supabase vector store** - Semantic search over memories
+- **Neo4j knowledge graph** (optional) - Visual memory relationships
+- **User-scoped** - Memories are isolated per user
+- **Encrypted** - Stored with proper authentication
+
+<Info>
+  Memories can be viewed and managed from the [Brain Panel](/features/memory/brain-panel) (`Ctrl+Shift+B`).
+</Info>
+
+## See Also
+
+- [Action Menu](/features/ai-assistance/action-menu) - Quick AI transformations
+- [Brain Panel](/features/memory/brain-panel) - View and manage memories
+- [Text Transformations](/features/ai-assistance/text-transformations) - Available transformation actions

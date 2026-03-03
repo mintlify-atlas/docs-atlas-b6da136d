@@ -1,0 +1,153 @@
+---
+title: Introduction
+description: Transform your keyboard into a real-time AI collaborator for coding interviews and beyond
+---
+
+# Welcome to Tabby AI Keyboard
+
+Tabby is a **system-wide AI assistant** that lives at the point of input. Instead of switching between apps for AI help, it provides intelligent assistance directly where you're typing.
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get up and running in 5 minutes with the essential setup
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Complete installation guide with all prerequisites and configuration
+  </Card>
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/shortcuts/overview">
+    Master all the keyboard shortcuts to maximize productivity
+  </Card>
+  <Card title="Configuration" icon="gear" href="/guides/configuration/settings">
+    Customize Tabby to match your workflow and preferences
+  </Card>
+</CardGroup>
+
+## What Makes Tabby Different?
+
+Tabby isn't just another AI tool - it's a complete keyboard layer that brings AI capabilities directly to your input device. No more context switching, no more copy-pasting between applications.
+
+### Core Capabilities
+
+<CardGroup cols={3}>
+  <Card title="Interview Copilot" icon="graduation-cap">
+    Real-time coding interview assistance with screen capture and intelligent problem analysis
+  </Card>
+  <Card title="Context-Aware Autocomplete" icon="wand-magic-sparkles">
+    AI suggestions based on what you're typing, powered by advanced language models
+  </Card>
+  <Card title="Desktop Automation" icon="robot">
+    Full Windows MCP integration for system-level control and automation
+  </Card>
+  <Card title="Persistent Memory" icon="brain">
+    Remembers your preferences, coding style, and past interactions using Mem0
+  </Card>
+  <Card title="Invisible Typing" icon="ghost">
+    AI can type directly into any app with character-by-character typewriter mode
+  </Card>
+  <Card title="Voice Agent" icon="microphone">
+    Voice-to-text and text-to-voice capabilities with live agent support
+  </Card>
+</CardGroup>
+
+## Key Features
+
+### Interview Copilot (Coding Mode)
+
+Perfect for coding interviews and technical problem-solving:
+
+- **Screen Capture Analysis** (`Alt+X`) - Capture and analyze coding problems from your screen
+- **Contextual Updates** (`Alt+Shift+X`) - Update analysis with new constraints
+- **Code Suggestions** (`Alt+N`) - Get intelligent code improvements
+- **Multi-Tab Interface** (`Ctrl+1-6`) - Switch between Chat, Idea, Code, Walkthrough, Test Cases, and Memories
+
+### Action Menu (Quick AI)
+
+Instant AI assistance with selected text:
+
+- **Quick Access** (`Ctrl+\`) - Open action menu with selected text
+- **Chat Mode** (`Tab`) - Quick AI chat for any question
+- **Built-in Actions** - Fix grammar, adjust tone, shorten/expand text, write emails
+- **Custom Prompts** - Create your own AI actions
+
+### AI Suggestions
+
+Intelligent autocomplete wherever you type:
+
+- **On-Demand** (`Ctrl+Space`) - Get AI suggestions for current context
+- **Auto Mode** - Clipboard watcher for automatic suggestions
+- **Inline Completions** - Non-intrusive suggestions based on your input
+
+### Brain Panel (Memory Dashboard)
+
+Visual memory management and context control:
+
+- **Toggle Panel** (`Ctrl+Shift+B`) - View stored memories
+- **Image Upload** - Add visual context to your memory
+- **Neo4j Visualization** - Knowledge graph of your interactions
+- **Automatic Capture** - Monitor context automatically
+
+## Tech Stack
+
+Built with modern, powerful technologies:
+
+| Layer | Technology |
+| --- | --- |
+| **Desktop App** | Electron 38 |
+| **Frontend** | Next.js 15, React 19, Tailwind CSS |
+| **AI** | Vercel AI SDK, OpenAI/Groq/Cerebras |
+| **Memory** | Mem0 (Supabase vector store + Neo4j graph) |
+| **Desktop Automation** | nut-js, node-window-manager, Windows MCP |
+| **Database** | Supabase (Local Docker) |
+
+## Text Output Modes
+
+Choose how AI delivers content:
+
+- **Paste Mode** - Standard clipboard paste (default)
+- **Typewriter Mode** - AI types character-by-character for undetectable input
+
+<Note>
+Typewriter mode is perfect for scenarios where you need the AI's input to appear as natural typing.
+</Note>
+
+## Getting Started
+
+Ready to supercharge your keyboard? Choose your path:
+
+<CardGroup cols={2}>
+  <Card title="Quick Start Guide" icon="bolt" href="/quickstart">
+    Get running quickly with the minimal setup
+  </Card>
+  <Card title="Full Installation" icon="book" href="/installation">
+    Complete setup with all features and integrations
+  </Card>
+</CardGroup>
+
+## System Requirements
+
+<Info>
+  Tabby currently supports **Windows** with Electron 38. The app runs in your system tray for easy access.
+</Info>
+
+- **Platform**: Windows 10/11
+- **Node.js**: 18 or higher
+- **Python**: 3.12 or higher (for memory backend)
+- **Docker Desktop**: For local Supabase instance
+- **Package Managers**: pnpm and uv
+
+## Next Steps
+
+<Steps>
+  <Step title="Installation">
+    Follow the [installation guide](/installation) to set up Tabby with all prerequisites
+  </Step>
+  <Step title="Configuration">
+    Configure your AI providers and set up environment variables
+  </Step>
+  <Step title="Learn Shortcuts">
+    Master the keyboard shortcuts to unlock Tabby's full potential
+  </Step>
+  <Step title="Start Creating">
+    Begin using Tabby for coding, writing, and productivity
+  </Step>
+</Steps>

@@ -1,0 +1,242 @@
+---
+title: AI Provider Configuration
+description: Configure OpenAI, Groq, Cerebras, Google, and other AI providers for Tabby
+---
+
+Tabby supports multiple AI providers through the Vercel AI SDK, allowing you to choose the best models for your use case. Configure your preferred providers by adding API keys to your environment variables.
+
+## Supported Providers
+
+Tabby integrates with the following AI providers:
+
+- **OpenAI** - GPT models for chat, coding, and memory operations
+- **Groq** - Fast inference with Llama and other open models
+- **Cerebras** - High-performance AI inference
+- **Google Generative AI** - Gemini models
+- **OpenRouter** - Access to multiple models through a single API
+- **XAI** - Additional AI capabilities
+
+## Configuration
+
+### Next.js Backend
+
+The Next.js backend (`nextjs-backend/.env.local`) handles AI provider configuration for the application's main features.
+
+<CodeGroup>
+
+```env nextjs-backend/.env.local
+# AI Providers
+OPENAI_API_KEY="sk-..."
+GOOGLE_GENERATIVE_AI_API_KEY="..."
+GROQ_API_KEY="gsk_..."
+CEREBRAS_API_KEY="..."
+OPENROUTER_API_KEY="..."
+
+# Tools
+TAVILY_API_KEY="tvly-..."
+```
+
+</CodeGroup>
+
+### Memory Backend
+
+The Python memory backend (`backend/.env`) requires an OpenAI API key for memory operations with Mem0.
+
+<CodeGroup>
+
+```env backend/.env
+OPENAI_API_KEY="sk-..."
+```
+
+</CodeGroup>
+
+<Note>
+The memory backend uses OpenAI's `gpt-4.1-nano-2025-04-14` model for memory classification and vision capabilities.
+</Note>
+
+## Provider Setup
+
+### OpenAI
+
+<Tabs>
+  <Tab title="Get API Key">
+    1. Visit [OpenAI Platform](https://platform.openai.com)
+    2. Create an account or sign in
+    3. Navigate to **API Keys** section
+    4. Click **Create new secret key**
+    5. Copy the key (starts with `sk-`)
+  </Tab>
+  <Tab title="Configure">
+    Add to both `nextjs-backend/.env.local` and `backend/.env`:
+    ```env
+    OPENAI_API_KEY="sk-your-key-here"
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+OpenAI API key is **required** for the memory backend. The application will not function properly without it.
+</Warning>
+
+### Groq
+
+<Tabs>
+  <Tab title="Get API Key">
+    1. Visit [Groq Console](https://console.groq.com)
+    2. Create an account or sign in
+    3. Navigate to **API Keys**
+    4. Click **Create API Key**
+    5. Copy the key (starts with `gsk_`)
+  </Tab>
+  <Tab title="Configure">
+    Add to `nextjs-backend/.env.local`:
+    ```env
+    GROQ_API_KEY="gsk-your-key-here"
+    ```
+  </Tab>
+</Tabs>
+
+### Cerebras
+
+<Tabs>
+  <Tab title="Get API Key">
+    1. Visit [Cerebras Cloud](https://cloud.cerebras.ai)
+    2. Create an account or sign in
+    3. Navigate to **API Keys**
+    4. Generate a new API key
+    5. Copy the key
+  </Tab>
+  <Tab title="Configure">
+    Add to `nextjs-backend/.env.local`:
+    ```env
+    CEREBRAS_API_KEY="your-key-here"
+    ```
+  </Tab>
+</Tabs>
+
+### Google Generative AI
+
+<Tabs>
+  <Tab title="Get API Key">
+    1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+    2. Sign in with your Google account
+    3. Click **Create API Key**
+    4. Copy the generated key
+  </Tab>
+  <Tab title="Configure">
+    Add to `nextjs-backend/.env.local`:
+    ```env
+    GOOGLE_GENERATIVE_AI_API_KEY="your-key-here"
+    ```
+  </Tab>
+</Tabs>
+
+### OpenRouter
+
+<Tabs>
+  <Tab title="Get API Key">
+    1. Visit [OpenRouter](https://openrouter.ai)
+    2. Create an account or sign in
+    3. Navigate to **Keys** section
+    4. Create a new API key
+    5. Copy the key
+  </Tab>
+  <Tab title="Configure">
+    Add to `nextjs-backend/.env.local`:
+    ```env
+    OPENROUTER_API_KEY="your-key-here"
+    ```
+  </Tab>
+</Tabs>
+
+## AI SDK Integration
+
+Tabby uses the Vercel AI SDK to integrate with providers. The SDK packages are already included in the project:
+
+```json package.json
+{
+  "dependencies": {
+    "@ai-sdk/openai": "^3.0.7",
+    "@ai-sdk/groq": "^3.0.4",
+    "@ai-sdk/cerebras": "^2.0.5",
+    "@ai-sdk/google": "^3.0.6",
+    "@ai-sdk/openai-compatible": "^2.0.10",
+    "ai": "^6.0.23"
+  }
+}
+```
+
+## Web Search with Tavily
+
+Tabby supports web search capabilities through Tavily, enhancing AI responses with real-time information.
+
+<Tabs>
+  <Tab title="Get API Key">
+    1. Visit [Tavily](https://tavily.ai)
+    2. Create an account
+    3. Navigate to the dashboard
+    4. Copy your API key
+  </Tab>
+  <Tab title="Configure">
+    Add to `nextjs-backend/.env.local`:
+    ```env
+    TAVILY_API_KEY="tvly-your-key-here"
+    ```
+  </Tab>
+</Tabs>
+
+## Best Practices
+
+### API Key Security
+
+- Never commit `.env` files to version control
+- Use `.env.example` as templates for required keys
+- Rotate API keys regularly
+- Set up usage limits and alerts in provider dashboards
+
+### Provider Selection
+
+- **OpenAI** - Best for general-purpose tasks and memory operations (required)
+- **Groq** - Fastest inference, ideal for real-time interactions
+- **Cerebras** - High-performance for intensive workloads
+- **Google Gemini** - Alternative to OpenAI for vision and reasoning
+- **OpenRouter** - Access multiple models with a single API key
+
+### Cost Optimization
+
+- Monitor usage in provider dashboards
+- Use cheaper models for simple tasks (e.g., text formatting)
+- Reserve powerful models for complex tasks (e.g., coding assistance)
+- Consider rate limits and quotas for each provider
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="API key not working">
+    - Verify the key is correctly copied (no extra spaces)
+    - Check if the key has been activated in the provider dashboard
+    - Ensure you have credits/billing set up
+    - Restart the backend after adding new keys
+  </Accordion>
+
+  <Accordion title="Provider not available in the app">
+    - Verify the API key is set in the correct `.env.local` file
+    - Restart both the Next.js backend and Electron app
+    - Check console logs for configuration errors
+  </Accordion>
+
+  <Accordion title="Memory backend not starting">
+    The memory backend requires an OpenAI API key. Ensure `OPENAI_API_KEY` is set in `backend/.env`.
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Memory Backend" icon="brain" href="/guides/configuration/memory-backend">
+    Configure persistent memory with Mem0
+  </Card>
+  <Card title="Settings" icon="gear" href="/guides/configuration/settings">
+    Customize application settings
+  </Card>
+</CardGroup>

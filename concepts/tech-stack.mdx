@@ -1,0 +1,772 @@
+---
+title: "Technology Stack"
+description: "Complete breakdown of frameworks, libraries, and tools powering Tabby AI Keyboard"
+---
+
+## Stack Overview
+
+Tabby is built with modern, production-ready technologies chosen for performance, developer experience, and ecosystem maturity.
+
+<CardGroup cols={3}>
+  <Card title="Frontend" icon="window">
+    Next.js 15, React 19, Tailwind CSS 4
+  </Card>
+  <Card title="Desktop" icon="desktop">
+    Electron 38, nut-js, uiohook-napi
+  </Card>
+  <Card title="Backend" icon="server">
+    FastAPI, Uvicorn, Mem0
+  </Card>
+  <Card title="AI" icon="brain">
+    Vercel AI SDK, OpenAI, Groq, Cerebras
+  </Card>
+  <Card title="Database" icon="database">
+    Supabase (PostgreSQL), Neo4j
+  </Card>
+  <Card title="Deployment" icon="cloud">
+    Azure Container Apps, Vercel, GitHub Actions
+  </Card>
+</CardGroup>
+
+## Desktop Application
+
+### Electron 38
+
+The foundation of Tabby's desktop presence.
+
+**Why Electron?**
+
+<AccordionGroup>
+  <Accordion title="System-Wide Access">
+    Electron enables global keyboard shortcuts, clipboard access, and desktop automation that web apps cannot achieve.
+  </Accordion>
+  
+  <Accordion title="Cross-Platform Potential">
+    While currently Windows-focused, Electron makes macOS and Linux ports straightforward.
+  </Accordion>
+  
+  <Accordion title="Web Tech Stack">
+    Leverage React, Next.js, and modern web APIs while building a native desktop app.
+  </Accordion>
+</AccordionGroup>
+
+**Key Dependencies:**
+
+```json
+{
+  "electron": "^38.2.1",
+  "electron-builder": "^26.0.12",
+  "electron-store": "^11.0.2"
+}
+```
+
+### Desktop Automation
+
+#### nut-js (nut-tree-fork)
+
+**Cross-platform desktop automation** for keyboard and mouse control:
+
+```typescript
+import { keyboard, Key } from '@nut-tree-fork/nut-js';
+
+// Typewriter mode: character-by-character typing
+async function typeText(text: string) {
+  for (const char of text) {
+    await keyboard.type(char);
+    await new Promise(resolve => setTimeout(resolve, 20)); // 20ms delay
+  }
+}
+```
+
+**Use Cases:**
+- Undetectable AI typing (typewriter mode)
+- Automated keyboard shortcuts
+- Clipboard paste simulation
+
+#### uiohook-napi
+
+**Low-level keyboard and mouse hook** for global event listening:
+
+```typescript
+import { uIOhook } from 'uiohook-napi';
+
+uIOhook.on('keydown', (e) => {
+  if (e.ctrlKey && e.keycode === 220) { // Ctrl+\
+    showActionMenu();
+  }
+});
+```
+
+**Features:**
+- Global keyboard hooks (even when app is unfocused)
+- Mouse event capture
+- Multi-key combination detection
+
+#### node-window-manager
+
+**Window management and positioning:**
+
+```typescript
+import { windowManager } from 'node-window-manager';
+
+// Get active window for context
+const activeWindow = windowManager.getActiveWindow();
+console.log(activeWindow.getTitle());
+```
+
+## Frontend Framework
+
+### Next.js 15 with App Router
+
+**Modern React framework** running inside Electron's renderer process.
+
+**Key Features Used:**
+
+<CardGroup cols={2}>
+  <Card title="App Router" icon="route">
+    File-based routing with layouts and nested routes
+  </Card>
+  <Card title="Server Components" icon="server">
+    Optimized initial page loads (even in Electron)
+  </Card>
+  <Card title="API Routes" icon="plug">
+    Built-in API endpoints for AI completions
+  </Card>
+  <Card title="Turbopack" icon="gauge-high">
+    Fast development builds and hot reload
+  </Card>
+</CardGroup>
+
+**Configuration:**
+
+```json
+{
+  "scripts": {
+    "next:dev": "next dev --turbopack",
+    "next:build": "next build --turbopack"
+  }
+}
+```
+
+### React 19
+
+**Latest React with cutting-edge features:**
+
+- **Automatic batching**: Improved performance for state updates
+- **Transitions**: Smooth UI updates during async operations
+- **Suspense improvements**: Better loading states
+- **useOptimistic**: Optimistic UI updates for chat
+
+```typescript
+import { useOptimistic } from 'react';
+
+const [optimisticMessages, addOptimisticMessage] = useOptimistic(
+  messages,
+  (state, newMessage) => [...state, newMessage]
+);
+```
+
+### Tailwind CSS 4
+
+**Utility-first CSS framework** with v4's new features:
+
+```json
+{
+  "@tailwindcss/postcss": "^4.1.14",
+  "tailwindcss": "^4.1.14"
+}
+```
+
+**Benefits:**
+- Lightning-fast JIT compilation
+- Native CSS cascade layers
+- Simplified configuration
+- Better performance than v3
+
+### UI Component Library
+
+#### Radix UI Primitives
+
+**Headless, accessible components:**
+
+```json
+{
+  "@radix-ui/react-dialog": "^1.1.15",
+  "@radix-ui/react-dropdown-menu": "^2.1.16",
+  "@radix-ui/react-popover": "^1.1.15",
+  "@radix-ui/react-tabs": "^1.1.13",
+  "@radix-ui/react-tooltip": "^1.2.8"
+}
+```
+
+**Why Radix?**
+- Full keyboard navigation
+- Screen reader support
+- Unstyled (full styling control)
+- Battle-tested in production apps
+
+#### shadcn/ui Pattern
+
+Tabby follows the **shadcn/ui pattern**:
+
+1. Components built on Radix primitives
+2. Styled with Tailwind CSS
+3. Full source code in your repo (not npm package)
+4. Customizable with `class-variance-authority`
+
+```typescript
+import { cva } from 'class-variance-authority';
+
+const buttonVariants = cva(
+  'inline-flex items-center justify-center rounded-md',
+  {
+    variants: {
+      variant: {
+        default: 'bg-primary text-primary-foreground',
+        ghost: 'hover:bg-accent hover:text-accent-foreground',
+      }
+    }
+  }
+);
+```
+
+#### Additional UI Libraries
+
+```json
+{
+  "lucide-react": "^0.562.0",        // Icon library
+  "motion": "^12.24.12",              // Framer Motion animations
+  "cmdk": "^1.1.1",                   // Command palette
+  "sonner": "^2.0.7",                 // Toast notifications
+  "vaul": "^1.1.2",                   // Mobile drawer
+  "embla-carousel-react": "^8.6.0"   // Carousels
+}
+```
+
+## AI & Machine Learning
+
+### Vercel AI SDK 6.0
+
+**Unified interface** for multiple AI providers with streaming support.
+
+**Installation:**
+
+```json
+{
+  "ai": "^6.0.23",
+  "@ai-sdk/react": "^3.0.23",
+  "@ai-sdk/ui-utils": "^1.2.11"
+}
+```
+
+**Provider Support:**
+
+```json
+{
+  "@ai-sdk/openai": "^3.0.7",
+  "@ai-sdk/google": "^3.0.6",
+  "@ai-sdk/groq": "^3.0.4",
+  "@ai-sdk/cerebras": "^2.0.5",
+  "@ai-sdk/openai-compatible": "^2.0.10"
+}
+```
+
+**React Hooks:**
+
+<CodeGroup>
+
+```typescript Chat
+import { useChat } from 'ai/react';
+
+const { messages, input, handleSubmit, isLoading } = useChat({
+  api: '/api/chat',
+  body: { userId, memories },
+  onFinish: (message) => console.log('Done:', message)
+});
+```
+
+```typescript Completion
+import { useCompletion } from 'ai/react';
+
+const { completion, complete, isLoading } = useCompletion({
+  api: '/api/completion',
+  onFinish: (prompt, completion) => insertText(completion)
+});
+```
+
+</CodeGroup>
+
+**Streaming Text Generation:**
+
+```typescript
+import { streamText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+export async function POST(req: Request) {
+  const { messages, userId } = await req.json();
+  
+  const result = streamText({
+    model: openai('gpt-4-turbo'),
+    messages,
+    temperature: 0.7,
+  });
+  
+  return result.toDataStreamResponse();
+}
+```
+
+### MCP (Model Context Protocol)
+
+**Model Context Protocol integration** for Windows desktop control:
+
+```json
+{
+  "@ai-sdk/mcp": "^1.0.5"
+}
+```
+
+**Scripts:**
+
+```json
+{
+  "windows-mcp": "uvx windows-mcp --transport streamable-http --port 8001",
+  "leetcode-mcp": "npx -y @jinzcdev/leetcode-mcp-server --site global"
+}
+```
+
+Enables AI to:
+- Control Windows applications
+- Read/write files
+- Execute commands
+- Fetch LeetCode problems for interview mode
+
+### Web Search (Tavily)
+
+**AI-optimized search API:**
+
+```typescript
+import { tavily } from '@tavily/core';
+
+const client = tavily({ apiKey: process.env.TAVILY_API_KEY });
+const results = await client.search(query, {
+  searchDepth: 'advanced',
+  maxResults: 5
+});
+```
+
+## Backend Services
+
+### FastAPI (Python)
+
+**High-performance async web framework** for the memory service.
+
+**Why FastAPI?**
+
+- **Mem0 compatibility**: Mem0 is a Python library
+- **Type safety**: Pydantic models for validation
+- **Auto docs**: OpenAPI/Swagger UI built-in
+- **Fast**: Async/await support, comparable to Node.js
+
+**Core Implementation:**
+
+```python
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from mem0 import Memory
+
+app = FastAPI(
+    title="Memory API",
+    description="API for mem0 memory operations",
+    version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+```
+
+**Dependencies:**
+
+```toml
+[project]
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "mem0ai",
+    "openai",
+    "python-dotenv",
+    "pydantic"
+]
+```
+
+### Mem0
+
+**Intelligent memory layer** for AI applications.
+
+**Features:**
+
+- Automatic fact extraction from conversations
+- Vector embeddings for semantic search
+- Graph relationships for knowledge mapping
+- Multi-user memory isolation
+- Image memory support with vision models
+
+See [Memory System Architecture](/concepts/memory-system) for details.
+
+### Python Package Management (uv)
+
+**Fast Python package installer** (Rust-based, replaces pip):
+
+```bash
+uv sync         # Install dependencies from pyproject.toml
+uv run main.py  # Run with virtual environment
+uvx windows-mcp # Run packages without installing
+```
+
+**Performance:**
+- 10-100x faster than pip
+- Deterministic dependency resolution
+- Compatible with pip/Poetry projects
+
+## Database & Storage
+
+### Supabase (Local Docker)
+
+**Open-source Firebase alternative** running locally.
+
+**Components:**
+
+<Steps>
+  <Step title="PostgreSQL 15">
+    Main database with pgvector extension for embeddings
+  </Step>
+  <Step title="PostgREST">
+    Instant RESTful API from database schema
+  </Step>
+  <Step title="GoTrue">
+    JWT-based authentication server
+  </Step>
+  <Step title="Realtime">
+    WebSocket server for live updates
+  </Step>
+  <Step title="Storage">
+    S3-compatible object storage for images
+  </Step>
+</Steps>
+
+**Client Libraries:**
+
+```json
+{
+  "@supabase/supabase-js": "^2.90.1",
+  "@supabase/ssr": "^0.8.0"
+}
+```
+
+**Usage:**
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+// Vector search for memories
+const { data } = await supabase
+  .rpc('match_memories', {
+    query_embedding: embedding,
+    match_threshold: 0.7,
+    match_count: 10
+  });
+```
+
+### Neo4j (Optional)
+
+**Graph database** for knowledge graph visualization.
+
+**Visualization Library:**
+
+```json
+{
+  "@neo4j-nvl/base": "^1.0.0",
+  "@neo4j-nvl/react": "^1.0.0"
+}
+```
+
+**Use Case:**
+
+Displays relationships between memories in the Brain Panel:
+
+```typescript
+import NVL from '@neo4j-nvl/react';
+
+const nodes = [
+  { id: '1', caption: 'User prefers dark mode' },
+  { id: '2', caption: 'User uses TypeScript' },
+];
+
+const relationships = [
+  { from: '1', to: '2', type: 'RELATED_TO' }
+];
+
+<NVL nodes={nodes} rels={relationships} />
+```
+
+## Development Tools
+
+### TypeScript 5.9
+
+**Type-safe JavaScript** across frontend, backend, and Electron:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "jsx": "preserve",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
+```
+
+### Build Tools
+
+#### tsup
+
+**Fast TypeScript bundler** for Electron main process:
+
+```typescript
+// tsup.config.ts
+import { defineConfig } from 'tsup';
+
+export default defineConfig({
+  entry: ['electron/src/main.ts', 'electron/src/preload.ts'],
+  format: ['cjs'],
+  platform: 'node',
+  target: 'node18',
+  bundle: true,
+  sourcemap: true,
+  clean: true,
+});
+```
+
+#### electron-builder
+
+**Application packaging and distribution:**
+
+```json
+{
+  "build": {
+    "appId": "com.tabby.ai-keyboard",
+    "productName": "Tabby",
+    "asar": true,
+    "nsis": {
+      "oneClick": false,
+      "perMachine": true,
+      "allowToChangeInstallationDirectory": true
+    },
+    "win": {
+      "target": ["nsis"]
+    }
+  }
+}
+```
+
+### Code Quality
+
+```json
+{
+  "dprint": "^0.50.2",              // Fast code formatter
+  "eslint": "^9.37.0",              // Linting
+  "eslint-config-next": "^15.5.4"   // Next.js ESLint rules
+}
+```
+
+## Deployment & CI/CD
+
+### GitHub Actions
+
+**Automated workflows** for releases and deployment:
+
+<CodeGroup>
+
+```yaml Desktop App Release
+name: Release Electron App
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: pnpm install
+      - name: Build & Release
+        run: pnpm dist
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+```
+
+```yaml Backend Deploy
+name: Deploy Backend
+
+on:
+  push:
+    paths:
+      - 'backend/**'
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker image
+        run: docker build -t thecubestar/tabby-backend:${{ github.sha }} ./backend
+      - name: Push to Docker Hub
+        run: docker push thecubestar/tabby-backend:${{ github.sha }}
+      - name: Deploy to Azure
+        run: az containerapp update ...
+```
+
+</CodeGroup>
+
+### Docker
+
+**Backend containerization:**
+
+```dockerfile
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY pyproject.toml .
+RUN pip install uv && uv sync
+
+COPY . .
+
+CMD ["uv", "run", "main.py"]
+```
+
+### Deployment Targets
+
+<CardGroup cols={3}>
+  <Card title="Desktop App" icon="download">
+    **GitHub Releases**
+    
+    Windows .exe installer
+  </Card>
+  
+  <Card title="Memory API" icon="server">
+    **Azure Container Apps**
+    
+    FastAPI service in Docker
+  </Card>
+  
+  <Card title="Next.js API" icon="cloud">
+    **Vercel**
+    
+    Serverless functions
+  </Card>
+</CardGroup>
+
+## Additional Libraries
+
+### Utilities
+
+```json
+{
+  "date-fns": "^4.1.0",              // Date manipulation
+  "nanoid": "^5.1.6",                // ID generation
+  "zod": "^4.3.5",                   // Schema validation
+  "lru-cache": "^11.2.4",            // Memory caching
+  "tokenlens": "^1.3.1"              // Token counting
+}
+```
+
+### React Ecosystem
+
+```json
+{
+  "@tanstack/react-query": "^5.90.16",   // Server state management
+  "react-hook-form": "^7.70.0",          // Form handling
+  "@hookform/resolvers": "^5.2.2",       // Zod + react-hook-form
+  "next-themes": "^0.4.6",               // Theme switching
+  "react-resizable-panels": "^3.0.6"     // Resizable layouts
+}
+```
+
+### Visualization
+
+```json
+{
+  "@xyflow/react": "^12.10.0",      // Flow diagrams
+  "recharts": "2.15.4",             // Charts and graphs
+  "shiki": "^3.21.0"                // Code syntax highlighting
+}
+```
+
+## Package Management
+
+### pnpm
+
+**Fast, disk-efficient package manager:**
+
+```bash
+pnpm install              # Install dependencies
+pnpm add <package>        # Add package
+pnpm run dev              # Run script
+pnpm --filter frontend    # Run in specific workspace
+```
+
+**Why pnpm?**
+- 2x faster than npm
+- Saves disk space (content-addressable store)
+- Strict dependency resolution
+
+## Version Summary
+
+<Tip>
+  All versions are pinned to ensure reproducible builds. See `frontend/package.json` for the complete dependency list.
+</Tip>
+
+| Category | Technology | Version |
+|----------|-----------|----------|
+| Desktop | Electron | 38.2.1 |
+| Frontend | Next.js | 15.5.4 |
+| Frontend | React | 19.2.0 |
+| Styling | Tailwind CSS | 4.1.14 |
+| AI | Vercel AI SDK | 6.0.23 |
+| Backend | FastAPI | Latest |
+| Memory | Mem0 | Latest |
+| Database | Supabase | 2.90.1 |
+| Language | TypeScript | 5.9.3 |
+| Language | Python | 3.12+ |
+| Runtime | Node.js | 18+ |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="System Architecture" icon="sitemap" href="/concepts/architecture">
+    See how these technologies work together
+  </Card>
+  <Card title="Memory System" icon="brain" href="/concepts/memory-system">
+    Deep dive into Mem0, Supabase, and Neo4j
+  </Card>
+</CardGroup>

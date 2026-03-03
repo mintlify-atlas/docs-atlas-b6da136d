@@ -1,0 +1,190 @@
+---
+title: Delete Memory
+description: Delete specific memories or all memories for a user
+---
+
+## DELETE /memory/{memory_id}
+
+Delete a specific memory by its unique identifier.
+
+### Path Parameters
+
+<ParamField path="memory_id" type="string" required>
+  The unique identifier of the memory to delete.
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates whether the operation was successful.
+</ResponseField>
+
+<ResponseField name="result" type="object">
+  Confirmation of the deletion operation.
+  
+  <Expandable title="Result Object">
+    <ResponseField name="message" type="string">
+      Confirmation message about the deletion.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X DELETE http://localhost:8000/memory/mem_abc123
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "result": {
+    "message": "Memory deleted successfully"
+  }
+}
+```
+
+### Error Responses
+
+<ResponseField name="detail" type="string">
+  Error message describing what went wrong.
+</ResponseField>
+
+**500 Internal Server Error**
+
+```json
+{
+  "detail": "Memory not found or deletion failed"
+}
+```
+
+---
+
+## DELETE /memory/user/{user_id}
+
+Delete all memories for a specific user. This is a destructive operation that removes all stored memories associated with the user ID.
+
+<Warning>
+  This operation is irreversible. All memories for the user will be permanently deleted.
+</Warning>
+
+### Path Parameters
+
+<ParamField path="user_id" type="string" required>
+  The unique identifier of the user whose memories should be deleted.
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates whether the operation was successful.
+</ResponseField>
+
+<ResponseField name="result" type="object">
+  Confirmation of the deletion operation.
+  
+  <Expandable title="Result Object">
+    <ResponseField name="message" type="string">
+      Confirmation message about the deletion.
+    </ResponseField>
+    
+    <ResponseField name="deleted_count" type="integer">
+      Number of memories deleted.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X DELETE http://localhost:8000/memory/user/user_123
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "result": {
+    "message": "All memories deleted successfully",
+    "deleted_count": 42
+  }
+}
+```
+
+### Use Cases
+
+**User Account Deletion**
+
+When a user deletes their account, remove all their memories:
+
+```bash
+curl -X DELETE http://localhost:8000/memory/user/user_123
+```
+
+**Privacy Compliance**
+
+Handle GDPR "right to be forgotten" requests:
+
+```bash
+curl -X DELETE http://localhost:8000/memory/user/user_456
+```
+
+**Testing & Development**
+
+Clear test data between test runs:
+
+```bash
+curl -X DELETE http://localhost:8000/memory/user/test_user_001
+```
+
+### Selective Deletion
+
+<Note>
+  Currently, the API doesn't support selective deletion by memory type (e.g., delete only SHORT_TERM memories). To achieve this, you would need to:
+  1. Search for memories with the specific type filter
+  2. Delete each memory individually using `/memory/{memory_id}`
+</Note>
+
+**Example: Delete All Short-Term Memories**
+
+```bash
+# Step 1: Get all SHORT_TERM memories
+curl -X POST http://localhost:8000/memory/get_all \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "user_123",
+    "memory_type": "SHORT_TERM"
+  }'
+
+# Step 2: Delete each memory ID from the response
+curl -X DELETE http://localhost:8000/memory/mem_abc123
+curl -X DELETE http://localhost:8000/memory/mem_def456
+# ... etc
+```
+
+### Error Responses
+
+**500 Internal Server Error**
+
+```json
+{
+  "detail": "Failed to delete memories"
+}
+```
+
+**Common Error Scenarios**
+
+1. **Invalid Memory ID**: The provided memory doesn't exist (single delete)
+2. **User Not Found**: No memories found for the user ID (user delete)
+3. **Database Connection**: Failure to connect to the vector store
+4. **Partial Deletion**: Some memories deleted but operation failed partway through
+
+### Implementation Details
+
+- **Single Delete Source:** `backend/main.py:332`
+- **User Delete Source:** `backend/main.py:344`
+- **Cascade Deletion:** Removes vectors from Supabase and relationships from Neo4j (if enabled)
+- **Atomic Operations:** Single deletes are atomic; user deletes may be partial on errors

@@ -1,0 +1,518 @@
+---
+title: Interview Copilot Tabs
+description: Detailed guide to all seven tabs in Interview Copilot - Chat, Idea, Code, Walkthrough, Test Cases, Mistakes, and Memories
+---
+
+Interview Copilot organizes analysis across seven specialized tabs, each focusing on a different aspect of solving coding problems. Switch between tabs using `Ctrl+1-7`.
+
+## Tab Overview
+
+<CardGroup cols={2}>
+  <Card title="Chat" icon="message-square">
+    Free-form conversation with context-aware AI
+  </Card>
+  <Card title="Idea" icon="lightbulb">
+    Problem breakdown, observations, and approach
+  </Card>
+  <Card title="Code" icon="code">
+    Clean, commented implementation
+  </Card>
+  <Card title="Walkthrough" icon="file-text">
+    Step-by-step solution explanation
+  </Card>
+  <Card title="Test Cases" icon="flask-conical">
+    Edge cases with inputs, outputs, and reasoning
+  </Card>
+  <Card title="Mistakes" icon="alert-triangle">
+    Your common errors and corrections
+  </Card>
+  <Card title="Memories" icon="brain">
+    Retrieved preferences and context
+  </Card>
+</CardGroup>
+
+## 1. Chat Tab (Ctrl+1)
+
+The Chat tab provides **free-form conversation** for clarifications and follow-up questions.
+
+### Use Cases
+
+- Ask clarifying questions about the problem
+- Request alternative approaches
+- Discuss time/space complexity trade-offs
+- Get hints without full solutions
+- Debug specific parts of your solution
+
+### Example Interaction
+
+```
+You: Can this be solved without using extra space?
+
+Assistant: Yes, you can use the two-pointer technique to solve
+this in-place with O(1) space complexity. Instead of creating
+a new array, you can swap elements within the original array...
+```
+
+<Note>
+  The Chat tab maintains full conversation context, including the problem from your screen capture.
+</Note>
+
+### Features
+
+- **Context-aware**: Remembers the captured problem and previous messages
+- **Custom prompts**: Type any question or instruction
+- **Screenshot toggle**: Optionally include new screenshots with questions
+- **Markdown support**: Responses formatted with GitHub-flavored markdown
+
+## 2. Idea Tab (Ctrl+2)
+
+The Idea tab provides **problem analysis and approach strategy**.
+
+### What's Included
+
+<Steps>
+  <Step title="Problem Analysis">
+    High-level understanding of what the problem is asking
+  </Step>
+  
+  <Step title="Key Observations">
+    Important patterns, constraints, and insights
+  </Step>
+  
+  <Step title="Approach Strategy">
+    Step-by-step plan with algorithm choice
+  </Step>
+  
+  <Step title="Edge Cases">
+    Corner cases to consider
+  </Step>
+</Steps>
+
+### Example Output
+
+```markdown
+## 💡 Problem Analysis
+
+### Key Observations
+- This is a sliding window problem with variable window size
+- Need to track unique characters in current window
+- Window expands right, contracts left when constraint violated
+
+### Approach
+1. Use HashMap to track character frequencies in window
+2. Expand window by moving right pointer
+3. Contract window from left when we exceed k unique chars
+4. Track maximum window size seen
+
+### Edge Cases to Consider
+- Empty string → return 0
+- k = 0 → return 0
+- k ≥ unique chars in string → return string length
+- All characters the same → window = entire string
+
+### Complexity Targets
+- Time: O(n) - single pass with two pointers
+- Space: O(k) - at most k unique characters in HashMap
+```
+
+<Note>
+  Press `Enter` while on the Idea tab to paste the analysis directly into your editor.
+</Note>
+
+## 3. Code Tab (Ctrl+3)
+
+The Code tab provides **clean, well-commented implementation**.
+
+### Code Quality
+
+All code includes:
+
+- **Clear variable names**: Descriptive, not abbreviated
+- **Inline comments**: Explain key logic and edge cases
+- **Proper formatting**: Consistent indentation and style
+- **Language preference**: Uses your preferred language from memory
+
+### Example Output
+
+```python
+def lengthOfLongestSubstringKDistinct(s: str, k: int) -> int:
+    """
+    Find the length of the longest substring with at most k distinct characters.
+    
+    Time Complexity: O(n)
+    Space Complexity: O(k)
+    """
+    if k == 0 or not s:
+        return 0
+    
+    # Track character frequencies in current window
+    char_count = {}
+    max_length = 0
+    left = 0
+    
+    for right in range(len(s)):
+        # Add character to window
+        char_count[s[right]] = char_count.get(s[right], 0) + 1
+        
+        # Contract window if we exceed k distinct characters
+        while len(char_count) > k:
+            char_count[s[left]] -= 1
+            if char_count[s[left]] == 0:
+                del char_count[s[left]]
+            left += 1
+        
+        # Update maximum length
+        max_length = max(max_length, right - left + 1)
+    
+    return max_length
+```
+
+### Language Preferences
+
+Interview Copilot learns your preferred language:
+
+<Tabs>
+  <Tab title="Python">
+    - Clean, Pythonic code
+    - Type hints included
+    - List comprehensions where appropriate
+  </Tab>
+  
+  <Tab title="JavaScript">
+    - Modern ES6+ syntax
+    - Const/let over var
+    - Arrow functions for clarity
+  </Tab>
+  
+  <Tab title="Java">
+    - Proper access modifiers
+    - Generic types specified
+    - Stream API for collections
+  </Tab>
+  
+  <Tab title="C++">
+    - STL containers and algorithms
+    - Auto keyword for clarity
+    - Modern C++17/20 features
+  </Tab>
+</Tabs>
+
+<Note>
+  The first time you use Interview Copilot, it will ask your preferred language. This preference is stored in memory and used for all future code generation.
+</Note>
+
+## 4. Walkthrough Tab (Ctrl+4)
+
+The Walkthrough tab provides **step-by-step solution explanation**.
+
+### Structure
+
+1. **Initialization**: What variables we set up and why
+2. **Main Algorithm**: How the core logic works
+3. **Edge Case Handling**: Special conditions addressed
+4. **Complexity Analysis**: Detailed time/space breakdown
+
+### Example Output
+
+```markdown
+## 🚶 Step-by-Step Walkthrough
+
+### Step 1: Initialization
+We set up:
+- `char_count`: HashMap to track character frequencies in our window
+- `max_length`: Stores the longest valid window we've found
+- `left`: Left pointer for sliding window (starts at 0)
+
+### Step 2: Expand Window (Right Pointer)
+For each character at position `right`:
+- Add it to our window by incrementing count in `char_count`
+- This potentially adds a new distinct character
+
+### Step 3: Contract Window (Left Pointer)
+When we have more than `k` distinct characters:
+- Remove characters from the left until we're back to `k` distinct
+- Decrement count for character at `left`
+- Remove from HashMap if count reaches 0
+- Move `left` pointer forward
+
+### Step 4: Track Maximum
+After each expansion/contraction:
+- Current window size = `right - left + 1`
+- Update `max_length` if this window is larger
+
+### Complexity Analysis
+
+| Metric | Value | Explanation |
+|--------|-------|-------------|
+| Time   | O(n)  | Each character visited at most twice (right pointer once, left pointer once) |
+| Space  | O(k)  | HashMap stores at most k distinct characters |
+
+### Why This Works
+The sliding window maintains the invariant: **at most k distinct characters**.
+We never need to look back because we're tracking all possibilities as we go.
+```
+
+## 5. Test Cases Tab (Ctrl+5)
+
+The Test Cases tab provides **comprehensive edge cases** with reasoning.
+
+### Format
+
+Test cases are displayed in a table:
+
+| Input | Output | Reason |
+|-------|--------|--------|
+| `s="eceba", k=2` | `3` | "ece" is longest substring with ≤2 distinct chars |
+| `s="aa", k=1` | `2` | Entire string has only 1 distinct char |
+| `s="", k=2` | `0` | Empty string edge case |
+| `s="abcba", k=0` | `0` | k=0 means no distinct characters allowed |
+| `s="a", k=1` | `1` | Single character edge case |
+
+### Categories Covered
+
+<CardGroup cols={2}>
+  <Card title="Normal Cases" icon="check">
+    Typical inputs that match problem description
+  </Card>
+  <Card title="Edge Cases" icon="alert-circle">
+    Empty inputs, single elements, boundary values
+  </Card>
+  <Card title="Corner Cases" icon="triangle-alert">
+    Unusual combinations that might break naive solutions
+  </Card>
+  <Card title="Large Inputs" icon="trending-up">
+    Performance testing with maximum constraints
+  </Card>
+</CardGroup>
+
+<Note>
+  Press `Enter` on the Test Cases tab to paste the formatted table directly into your notes or documentation.
+</Note>
+
+## 6. Mistakes Tab (Ctrl+6)
+
+The Mistakes tab shows **your common errors** based on past interview sessions.
+
+### How It Works
+
+Interview Copilot:
+
+1. **Searches memory** for past mistakes you've made
+2. **Filters by relevance** to the current problem type
+3. **Displays corrections** so you avoid repeating errors
+
+### Example Display
+
+<Steps>
+  <Step title="Mistake">
+    Off-by-one error: Used `range(len(s) - 1)` instead of `range(len(s))`
+  </Step>
+  
+  <Step title="Correction">
+    Always use `range(len(s))` to iterate through all indices. The range function is already exclusive of the end value.
+  </Step>
+  
+  <Step title="Pattern">
+    Array Indexing
+  </Step>
+</Steps>
+
+### Common Mistake Categories
+
+- **Array Indexing**: Off-by-one errors, boundary conditions
+- **Edge Cases**: Forgetting empty input, single element, duplicates
+- **Time Complexity**: Using nested loops when single pass is possible
+- **Space Complexity**: Creating unnecessary data structures
+- **Data Structures**: Using wrong type (List vs Set, Array vs HashMap)
+- **Algorithm Choice**: Using sort when hash table is more efficient
+
+<Warning>
+  The Mistakes tab only shows errors **you've actually made** in past sessions. It's personalized to your coding patterns.
+</Warning>
+
+### When No Mistakes Found
+
+If the tab shows "No past mistakes found":
+
+- This is your first time solving this problem type
+- You haven't made relevant mistakes yet
+- Great job maintaining clean coding practices!
+
+## 7. Memories Tab (Ctrl+7)
+
+The Memories tab displays **retrieved preferences and context** from Tabby's memory system.
+
+### What's Stored
+
+<Tabs>
+  <Tab title="Long-term">
+    - Preferred programming language
+    - Coding style conventions
+    - Naming preferences
+    - Interview target companies
+  </Tab>
+  
+  <Tab title="Short-term">
+    - Current interview session goals
+    - Topics preparing for
+    - Recent problem patterns
+  </Tab>
+  
+  <Tab title="Episodic">
+    - Past interview experiences
+    - Problems solved before
+    - Difficulty levels attempted
+  </Tab>
+  
+  <Tab title="Semantic">
+    - Algorithm knowledge
+    - Data structure familiarity
+    - Pattern recognition
+  </Tab>
+</Tabs>
+
+### Example Memories
+
+```
+✓ User prefers Python for technical interviews
+  Stored: 2 days ago
+
+✓ User uses descriptive variable names, not abbreviations
+  Stored: 1 week ago
+
+✓ User is preparing for FAANG interviews, focuses on medium/hard problems
+  Stored: 3 days ago
+
+✓ User struggled with backtracking problems but improving
+  Stored: 5 hours ago
+```
+
+<Note>
+  Memories are automatically retrieved and used to personalize all other tabs. The Memories tab just shows you what was found.
+</Note>
+
+## Tab Navigation
+
+### Keyboard Shortcuts
+
+| Shortcut | Tab |
+|----------|-----|
+| `Ctrl+1` | Chat |
+| `Ctrl+2` | Idea |
+| `Ctrl+3` | Code |
+| `Ctrl+4` | Walkthrough |
+| `Ctrl+5` | Test Cases |
+| `Ctrl+6` | Mistakes |
+| `Ctrl+7` | Memories |
+
+### Pasting Content
+
+Press `Enter` while on any content tab to paste:
+
+- **Idea Tab**: Pastes problem analysis
+- **Code Tab**: Pastes implementation code
+- **Walkthrough Tab**: Pastes step-by-step explanation
+- **Test Cases Tab**: Pastes formatted test case table
+
+<Note>
+  Chat, Mistakes, and Memories tabs don't support direct pasting. Use them for reference and learning.
+</Note>
+
+## Workflow Examples
+
+### Solving a New Problem
+
+<Steps>
+  <Step title="Capture and Read">
+    Press `Alt+X` → Switch to Idea tab (`Ctrl+2`) to read analysis
+  </Step>
+  
+  <Step title="Plan Your Approach">
+    Read the approach strategy and think through the solution
+  </Step>
+  
+  <Step title="Check Mistakes">
+    Switch to Mistakes tab (`Ctrl+6`) to avoid past errors
+  </Step>
+  
+  <Step title="Implement">
+    Code your solution, referencing Code tab (`Ctrl+3`) if stuck
+  </Step>
+  
+  <Step title="Verify">
+    Check Test Cases tab (`Ctrl+5`) to ensure you handle edge cases
+  </Step>
+</Steps>
+
+### Getting Unstuck
+
+<Steps>
+  <Step title="Ask for Hint">
+    Go to Chat tab (`Ctrl+1`) and ask "Give me a hint without the full solution"
+  </Step>
+  
+  <Step title="Review Approach">
+    Switch to Idea tab (`Ctrl+2`) to see if you missed a key observation
+  </Step>
+  
+  <Step title="Check Walkthrough">
+    If still stuck, read Walkthrough tab (`Ctrl+4`) for step-by-step guidance
+  </Step>
+</Steps>
+
+### Optimizing Your Solution
+
+<Steps>
+  <Step title="Capture Current Code">
+    Press `Alt+N` to analyze your code for improvements
+  </Step>
+  
+  <Step title="Compare Approaches">
+    Use Chat tab to ask "Is there a more optimal solution?"
+  </Step>
+  
+  <Step title="Study Better Code">
+    Review Code tab (`Ctrl+3`) to see optimized implementation
+  </Step>
+</Steps>
+
+## Best Practices
+
+### Use Tabs Effectively
+
+- **Start with Idea**: Understand before coding
+- **Reference, Don't Copy**: Learn the patterns, don't just paste
+- **Check Mistakes First**: Avoid repeating errors
+- **Use Chat for Clarity**: Ask when something is unclear
+- **Verify with Test Cases**: Always test edge cases
+
+### Learning Mode
+
+For maximum learning:
+
+1. Read Idea tab but **code yourself first**
+2. Get stuck? Ask Chat for **hints only**
+3. Still stuck? Read Walkthrough **one step at a time**
+4. Compare your solution with Code tab **after finishing**
+5. Review Mistakes to **improve future performance**
+
+<Warning>
+  Don't fall into the trap of immediately jumping to the Code tab. The learning happens when you struggle through the problem yourself.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Overview" icon="target" href="/features/interview-copilot/overview">
+    Back to Interview Copilot overview
+  </Card>
+  <Card title="Screen Capture" icon="camera" href="/features/interview-copilot/screen-capture">
+    Learn about screen capture technology
+  </Card>
+  <Card title="Memory System" icon="brain" href="/features/memory/brain-panel">
+    Understand how memories work
+  </Card>
+  <Card title="Shortcuts" icon="keyboard" href="/shortcuts/overview">
+    Master all keyboard shortcuts
+  </Card>
+</CardGroup>

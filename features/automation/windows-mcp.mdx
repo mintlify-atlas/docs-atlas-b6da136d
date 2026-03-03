@@ -1,0 +1,314 @@
+---
+title: Windows MCP Integration
+description: Extended desktop control through the Model Context Protocol for advanced automation
+---
+
+Tabby integrates with the Windows MCP (Model Context Protocol) server to provide AI models with advanced desktop control capabilities beyond basic keyboard and clipboard automation.
+
+## What is MCP?
+
+The [Model Context Protocol](https://modelcontextprotocol.io) is an open standard that allows AI models to interact with external tools and services in a structured way. Tabby's Windows MCP integration gives AI access to:
+
+- Advanced window management
+- File system operations
+- Process control
+- System information
+- Extended automation capabilities
+
+<Note>
+  Windows MCP is optional but recommended for users who want AI to have more control over their desktop environment during complex workflows.
+</Note>
+
+## Architecture
+
+Tabby's MCP integration consists of three components:
+
+### 1. Windows MCP Server
+
+A standalone HTTP server that exposes Windows automation tools:
+
+```json
+// frontend/package.json
+{
+  "scripts": {
+    "windows-mcp": "uvx windows-mcp --transport streamable-http --port 8001"
+  }
+}
+```
+
+Default endpoint: `http://localhost:8001/mcp`
+
+### 2. MCP Client (Next.js Backend)
+
+Connects to the MCP server and manages tool access:
+
+```typescript
+// nextjs-backend/src/lib/ai/mcp/mcp-config.ts
+export const MCP_SERVERS: MCPServerConfig[] = [
+  {
+    name: 'windows-mcp',
+    url: process.env.WINDOWS_MCP_URL || 'http://localhost:8001/mcp',
+  },
+]
+```
+
+### 3. AI SDK Integration
+
+Makes MCP tools available to AI models:
+
+```typescript
+// nextjs-backend/src/lib/ai/mcp/mcp-client.ts
+import { createMCPClient, MCPClient } from '@ai-sdk/mcp'
+
+export async function getMCPTools(): Promise<Record<string, any>> {
+  const allTools: Record<string, any> = {}
+  
+  for (const { name, client } of mcpClients) {
+    const tools = await client.tools()
+    
+    for (const [toolName, tool] of Object.entries(tools)) {
+      const prefixedName = `${name}_${toolName}`
+      allTools[prefixedName] = tool
+    }
+  }
+  
+  return allTools
+}
+```
+
+## Setup
+
+Windows MCP requires Python and the `windows-mcp` package:
+
+<Steps>
+  <Step title="Install uv (Python package manager)">
+    ```bash
+    # Install uv if not already installed
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    ```
+  </Step>
+  
+  <Step title="Start the MCP Server">
+    ```bash
+    cd frontend
+    pnpm run windows-mcp
+    ```
+    
+    The server starts on port 8001 and logs available tools.
+  </Step>
+  
+  <Step title="Configure Environment (Optional)">
+    To use a different URL or port:
+    
+    ```env
+    # nextjs-backend/.env.local
+    WINDOWS_MCP_URL=http://localhost:8001/mcp
+    ```
+  </Step>
+  
+  <Step title="Verify Connection">
+    The Next.js backend logs MCP connection status:
+    
+    ```
+    [MCP] Initializing 1 server(s)...
+    [MCP] Connected to server: windows-mcp
+    [MCP] Successfully connected to 1/1 server(s)
+    ```
+  </Step>
+</Steps>
+
+## Available Tools
+
+Once connected, AI models can access MCP tools prefixed with `windows-mcp_`:
+
+```typescript
+// Example tool names:
+windows-mcp_list_windows
+windows-mcp_focus_window
+windows-mcp_read_file
+windows-mcp_write_file
+windows-mcp_execute_command
+windows-mcp_get_system_info
+```
+
+<Note>
+  The exact tools available depend on the `windows-mcp` package version. Run `pnpm run windows-mcp` and check the startup logs to see all available tools.
+</Note>
+
+## How AI Uses MCP Tools
+
+When you chat with Tabby's AI, it can automatically invoke MCP tools:
+
+**User:** "Switch to my browser window"
+
+**AI thinks:**
+```typescript
+// 1. List available windows
+const windows = await windows-mcp_list_windows()
+
+// 2. Find browser
+const browser = windows.find(w => 
+  w.title.includes('Chrome') || 
+  w.title.includes('Firefox')
+)
+
+// 3. Focus it
+await windows-mcp_focus_window({ windowId: browser.id })
+```
+
+**AI responds:** "Switched to Chrome - Stack Overflow"
+
+## Security Considerations
+
+<Warning>
+  MCP tools have powerful system access. Only run the Windows MCP server when you need it, and be aware of what you're asking the AI to do.
+</Warning>
+
+### Safeguards
+
+1. **Local Only** - MCP server runs on `localhost` by default
+2. **Manual Start** - Server must be explicitly started via `pnpm run windows-mcp`
+3. **Tool Prefixing** - All tools are prefixed with `windows-mcp_` for clarity
+4. **Graceful Degradation** - If MCP server is offline, AI works without those tools
+
+### Connection Management
+
+```typescript
+// nextjs-backend/src/lib/ai/mcp/mcp-client.ts:13
+async function initializeMCPClients(): Promise<void> {
+  if (MCP_SERVERS.length === 0) {
+    console.log('[MCP] No servers configured')
+    return
+  }
+  
+  const clientPromises = MCP_SERVERS.map(async (server) => {
+    try {
+      const client = await createMCPClient({
+        transport: {
+          type: 'http',
+          url: server.url,
+          headers: server.headers,
+        },
+      })
+      return { name: server.name, client }
+    } catch (error) {
+      console.error(`[MCP] Failed to connect to ${server.name}:`, error)
+      return null
+    }
+  })
+  
+  const results = await Promise.all(clientPromises)
+  mcpClients = results.filter(entry => entry !== null)
+}
+```
+
+Connection failures are logged but don't crash the application.
+
+## Use Cases
+
+Windows MCP enables advanced workflows:
+
+### Workflow Automation
+
+**User:** "Take a screenshot, save it to my Desktop, and open it in Paint"
+
+**AI:**
+1. Captures screenshot via MCP
+2. Writes file to `~/Desktop/screenshot.png`
+3. Executes `mspaint screenshot.png`
+
+### Context Gathering
+
+**User:** "What's currently running on my system?"
+
+**AI:**
+1. Calls `windows-mcp_list_processes`
+2. Formats process list
+3. Returns summary of active applications
+
+### Multi-Window Coordination
+
+**User:** "Arrange my windows side-by-side"
+
+**AI:**
+1. Lists all windows
+2. Calculates screen positions
+3. Moves/resizes each window
+
+## Debugging
+
+Enable MCP debug logging:
+
+```typescript
+// nextjs-backend/src/lib/ai/mcp/mcp-client.ts
+console.log('[MCP] Initializing server...')
+console.log('[MCP] Connected to server:', server.name)
+console.log('[MCP] Failed to connect:', error)
+```
+
+Check the Next.js backend terminal for connection status and tool invocations.
+
+## Running in Production
+
+For the packaged Electron app:
+
+<Steps>
+  <Step title="Start MCP Server Separately">
+    ```bash
+    uvx windows-mcp --transport streamable-http --port 8001
+    ```
+  </Step>
+  
+  <Step title="Launch Tabby">
+    The Electron app connects to `http://localhost:8001/mcp` automatically.
+  </Step>
+  
+  <Step title="Optional: Auto-Start MCP">
+    Add the MCP server to your system startup if you use it frequently.
+  </Step>
+</Steps>
+
+## Extending MCP
+
+You can add additional MCP servers:
+
+```typescript
+// nextjs-backend/src/lib/ai/mcp/mcp-config.ts
+export const MCP_SERVERS: MCPServerConfig[] = [
+  {
+    name: 'windows-mcp',
+    url: 'http://localhost:8001/mcp',
+  },
+  {
+    name: 'custom-tools',
+    url: 'http://localhost:9000/mcp',
+    headers: {
+      'Authorization': 'Bearer token123',
+    },
+  },
+]
+```
+
+All servers are initialized in parallel, and their tools are merged with prefixes:
+- `windows-mcp_tool_name`
+- `custom-tools_tool_name`
+
+## Cleanup
+
+The MCP client gracefully closes connections on shutdown:
+
+```typescript
+export async function closeMCPClients(): Promise<void> {
+  for (const { name, client } of mcpClients) {
+    await client.close()
+    console.log(`[MCP] Closed connection to: ${name}`)
+  }
+  mcpClients = []
+}
+```
+
+## Related Features
+
+- [Desktop Control](/features/automation/desktop-control) - Built-in keyboard and window automation
+- [Typewriter Mode](/features/automation/typewriter-mode) - Human-like typing simulation
+- [Context Capture](/features/memory/context-capture) - Automatic screenshot memory

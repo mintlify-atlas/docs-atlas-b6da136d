@@ -1,0 +1,194 @@
+---
+title: Neo4j Setup (Optional)
+description: Set up Neo4j knowledge graph for advanced memory and context features in Tabby
+---
+
+Neo4j provides knowledge graph capabilities for Tabby, enabling advanced memory features and contextual understanding. This is completely optional - Tabby works perfectly fine without it.
+
+<Info>
+  The Neo4j knowledge graph is an optional feature. You can skip this setup and still use all core Tabby features.
+</Info>
+
+## What is the Knowledge Graph?
+
+The knowledge graph stores relationships between:
+- Conversations and topics
+- User preferences and patterns
+- Project context and files
+- Code snippets and documentation
+
+This enables Tabby to:
+- Remember context across sessions
+- Make better suggestions based on your history
+- Understand relationships between different parts of your work
+
+## Setup Options
+
+You can use either:
+1. **Neo4j AuraDB** (Cloud, free tier available) - Recommended for beginners
+2. **Self-hosted Neo4j** (Local Docker or server)
+
+## Option 1: Neo4j AuraDB (Cloud)
+
+<Steps>
+  <Step title="Create an account">
+    Go to [Neo4j AuraDB](https://neo4j.com/cloud/platform/aura-graph-database/) and sign up for a free account.
+  </Step>
+  
+  <Step title="Create a free instance">
+    1. Click "Create Instance"
+    2. Select **Free** tier
+    3. Choose a name for your instance
+    4. Select a region close to you
+    5. Click "Create"
+  </Step>
+  
+  <Step title="Save credentials">
+    <Warning>
+      This is important! You only get ONE chance to see your password.
+    </Warning>
+    
+    When your instance is created, Neo4j will show a dialog with:
+    - Connection URI (looks like `neo4j+s://xxxxx.databases.neo4j.io`)
+    - Username (usually `neo4j`)
+    - Password (randomly generated)
+    
+    Click **Download and save** to download a text file with these credentials.
+  </Step>
+  
+  <Step title="Get instance details">
+    From your AuraDB dashboard, note:
+    - **Instance ID**: Found in the instance details
+    - **Instance Name**: The name you gave your instance
+    
+    You'll need these for the environment configuration.
+  </Step>
+</Steps>
+
+## Option 2: Self-Hosted Neo4j (Docker)
+
+If you prefer to run Neo4j locally:
+
+```bash
+docker run -d \
+  --name neo4j \
+  -p 7474:7474 \
+  -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/your-password \
+  neo4j:latest
+```
+
+Access the Neo4j Browser at `http://localhost:7474` to verify it's running.
+
+<Note>
+  For production use, consider setting up persistent volumes and proper configuration. See [Neo4j Docker documentation](https://neo4j.com/developer/docker/) for details.
+</Note>
+
+## Configure Environment Variables
+
+Add your Neo4j credentials to `backend/.env`:
+
+### For Neo4j AuraDB
+
+```env
+# Neo4j AuraDB Configuration
+NEO4J_URL="neo4j+s://xxxxx.databases.neo4j.io"
+NEO4J_USERNAME="neo4j"
+NEO4J_PASSWORD="your-password-from-download"
+NEO4J_DATABASE="neo4j"
+AURA_INSTANCEID="your-instance-id"
+AURA_INSTANCENAME="your-instance-name"
+```
+
+### For Self-Hosted Neo4j
+
+```env
+# Local Neo4j Configuration
+NEO4J_URL="bolt://localhost:7687"
+NEO4J_USERNAME="neo4j"
+NEO4J_PASSWORD="your-password"
+NEO4J_DATABASE="neo4j"
+# Leave these empty for local instances
+AURA_INSTANCEID=""
+AURA_INSTANCENAME=""
+```
+
+## Environment Variables Explained
+
+<AccordionGroup>
+  <Accordion title="NEO4J_URL">
+    The connection URI for your Neo4j instance.
+    
+    - **AuraDB**: `neo4j+s://xxxxx.databases.neo4j.io` (uses TLS)
+    - **Local**: `bolt://localhost:7687` or `neo4j://localhost:7687`
+  </Accordion>
+  
+  <Accordion title="NEO4J_USERNAME">
+    Database username. Default is `neo4j` for both AuraDB and self-hosted instances.
+  </Accordion>
+  
+  <Accordion title="NEO4J_PASSWORD">
+    - **AuraDB**: The password from the credentials file you downloaded
+    - **Local**: The password you set in the Docker command
+  </Accordion>
+  
+  <Accordion title="NEO4J_DATABASE">
+    The database name to use. Default is `neo4j`.
+  </Accordion>
+  
+  <Accordion title="AURA_INSTANCEID & AURA_INSTANCENAME">
+    Only required for Neo4j AuraDB:
+    - **AURA_INSTANCEID**: Found in your AuraDB dashboard
+    - **AURA_INSTANCENAME**: The name of your instance
+    
+    Leave these empty if using a self-hosted instance.
+  </Accordion>
+</AccordionGroup>
+
+## Verify Connection
+
+After configuring the environment variables, you can verify the connection:
+
+1. Start the memory backend:
+   ```bash
+   cd backend
+   uv run main.py
+   ```
+
+2. Check the logs for successful Neo4j connection messages
+
+3. If using AuraDB, you can also verify in the Neo4j Browser at your instance's connection URL
+
+## Troubleshooting
+
+### Connection refused
+- **AuraDB**: Check your instance is running in the AuraDB dashboard
+- **Self-hosted**: Verify Docker container is running with `docker ps`
+
+### Authentication failed
+- Double-check your username and password
+- For AuraDB, make sure you're using the password from the downloaded credentials file
+- For local instances, verify the password matches what you set in the Docker command
+
+### TLS/SSL errors (AuraDB)
+- Make sure you're using `neo4j+s://` (with the +s) for AuraDB connections
+- Verify your instance URL is correct
+
+## Free Tier Limits
+
+Neo4j AuraDB free tier includes:
+- 200,000 nodes
+- 400,000 relationships
+- 1 GB storage
+
+This is more than enough for personal use and development.
+
+## Next Steps
+
+With Neo4j configured:
+
+1. Start all Tabby services including the memory backend
+2. The knowledge graph will automatically populate as you use Tabby
+3. Explore graph visualizations in the Neo4j Browser
+
+You're now ready to use Tabby with full knowledge graph capabilities!

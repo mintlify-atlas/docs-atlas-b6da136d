@@ -1,0 +1,326 @@
+---
+title: "Text Operations"
+description: "IPC methods for text manipulation and insertion in Tabby AI Keyboard"
+---
+
+## Overview
+
+Text operation IPC methods handle inserting, replacing, and managing text in external applications. These methods communicate with the text handler service to send text to the last active window.
+
+## Methods
+
+### replaceText
+
+Replaces the selected text in the target application with the provided text.
+
+<ParamField path="text" type="string" required>
+  The text to insert into the target application
+</ParamField>
+
+**Returns:** `void` (one-way message)
+
+**Implementation:** `frontend/electron/src/ipc/text-handlers.ts:6`
+
+<CodeGroup>
+```typescript Renderer Process
+// Replace selected text with AI-generated content
+const generatedText = "Hello, world!";
+window.electron.replaceText(generatedText);
+```
+
+```typescript React Component
+import { useState } from 'react';
+
+function MenuPanel() {
+  const [response, setResponse] = useState('');
+
+  const handleSubmit = () => {
+    // Send the generated text to the active window
+    window.electron.replaceText(response);
+  };
+
+  return (
+    <button onClick={handleSubmit}>
+      Insert Text
+    </button>
+  );
+}
+```
+</CodeGroup>
+
+#### Behavior
+
+1. Hides the main menu window
+2. Waits 100ms for window transition
+3. Sends text to the last active window using the configured output mode
+4. Updates clipboard state tracking
+
+#### Output Modes
+
+The text insertion method depends on the current `textOutputMode` setting:
+
+- **paste** - Uses clipboard paste (Ctrl+V)
+- **typewriter** - Simulates human typing with realistic delays
+- **typewriter-leetcode** - Typing mode optimized for code editors with auto-indent handling
+
+Set the output mode using `setTextOutputMode()`.
+
+---
+
+### acceptSuggestion
+
+Accepts an inline suggestion and inserts it into the target application.
+
+<ParamField path="text" type="string" required>
+  The suggestion text to accept and insert
+</ParamField>
+
+**Returns:** `void` (one-way message)
+
+**Implementation:** `frontend/electron/src/ipc/text-handlers.ts:24`
+
+<CodeGroup>
+```typescript Renderer Process
+// Accept a suggestion from the ghost text overlay
+const suggestion = "const result = data.map(item => item.value);";
+window.electron.acceptSuggestion(suggestion);
+```
+
+```typescript React Component
+function SuggestionPanel({ suggestion }: { suggestion: string }) {
+  const handleAccept = () => {
+    window.electron.acceptSuggestion(suggestion);
+  };
+
+  return (
+    <div>
+      <pre>{suggestion}</pre>
+      <button onClick={handleAccept}>Accept</button>
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+#### Behavior
+
+1. Hides the suggestion window
+2. Waits 100ms for window transition
+3. Sends text to the last active window
+4. Updates clipboard state tracking
+
+---
+
+### dismissSuggestion
+
+Dismisses the current suggestion without inserting any text.
+
+**Parameters:** None
+
+**Returns:** `void` (one-way message)
+
+**Implementation:** `frontend/electron/src/ipc/text-handlers.ts:42`
+
+<CodeGroup>
+```typescript Renderer Process
+// User rejected the suggestion
+window.electron.dismissSuggestion();
+```
+
+```typescript React Component
+function SuggestionPanel({ suggestion }: { suggestion: string }) {
+  return (
+    <div>
+      <pre>{suggestion}</pre>
+      <button onClick={() => window.electron.acceptSuggestion(suggestion)}>
+        Accept
+      </button>
+      <button onClick={() => window.electron.dismissSuggestion()}>
+        Dismiss
+      </button>
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+#### Behavior
+
+Simply hides the suggestion window without any text manipulation.
+
+---
+
+## Text Output Modes
+
+### getTextOutputMode
+
+Retrieves the current text output mode.
+
+**Parameters:** None
+
+**Returns:** `Promise<"paste" | "typewriter" | "typewriter-leetcode">`
+
+**Implementation:** `frontend/electron/src/ipc/settings-handlers.ts:27`
+
+```typescript
+const mode = await window.electron.getTextOutputMode();
+console.log("Current mode:", mode); // "paste", "typewriter", or "typewriter-leetcode"
+```
+
+---
+
+### setTextOutputMode
+
+Sets the text output mode for text insertion operations.
+
+<ParamField path="mode" type="'paste' | 'typewriter' | 'typewriter-leetcode'" required>
+  The text output mode to use
+  - `paste` - Fast clipboard-based insertion
+  - `typewriter` - Human-like typing with realistic delays and occasional typos
+  - `typewriter-leetcode` - Code editor optimized typing with auto-indent handling
+</ParamField>
+
+**Returns:** `void` (one-way message)
+
+**Implementation:** `frontend/electron/src/ipc/settings-handlers.ts:29`
+
+<CodeGroup>
+```typescript Renderer Process
+// Use paste mode for fastest insertion
+window.electron.setTextOutputMode("paste");
+
+// Use typewriter mode for human-like typing
+window.electron.setTextOutputMode("typewriter");
+
+// Use leetcode mode for code editors
+window.electron.setTextOutputMode("typewriter-leetcode");
+```
+
+```typescript Settings Component
+function TextOutputSettings() {
+  const [mode, setMode] = useState<string>('paste');
+
+  useEffect(() => {
+    window.electron.getTextOutputMode().then(setMode);
+  }, []);
+
+  const handleChange = (newMode: string) => {
+    setMode(newMode);
+    window.electron.setTextOutputMode(
+      newMode as "paste" | "typewriter" | "typewriter-leetcode"
+    );
+  };
+
+  return (
+    <select value={mode} onChange={(e) => handleChange(e.target.value)}>
+      <option value="paste">Paste (Fast)</option>
+      <option value="typewriter">Typewriter (Human-like)</option>
+      <option value="typewriter-leetcode">Typewriter (Code Editor)</option>
+    </select>
+  );
+}
+```
+</CodeGroup>
+
+---
+
+## Typewriter Mode Details
+
+The typewriter modes simulate human typing behavior to avoid detection by anti-cheating systems.
+
+### Features
+
+- **Realistic delays** - Variable delay between keystrokes (20-100ms)
+- **Typos** - 3% chance of typing a neighboring key, then correcting it
+- **Punctuation pauses** - Longer delays after punctuation marks (150-400ms)
+- **Word boundaries** - Slight pause after spaces (30-100ms)
+
+### Simple Typewriter
+
+Used for basic text editors like Notepad:
+
+```typescript
+window.electron.setTextOutputMode("typewriter");
+window.electron.replaceText("This will be typed character by character");
+```
+
+**Source:** `frontend/electron/src/services/text-handler.ts:153`
+
+### LeetCode Typewriter
+
+Optimized for code editors with auto-indent:
+
+```typescript
+window.electron.setTextOutputMode("typewriter-leetcode");
+window.electron.replaceText(`function solve(nums) {
+  return nums.filter(x => x > 0);
+}`);
+```
+
+This mode:
+1. Types each line separately
+2. Clears auto-indented whitespace before typing
+3. Preserves exact indentation from source code
+
+**Source:** `frontend/electron/src/services/text-handler.ts:218`
+
+---
+
+## Event Listeners
+
+### onShowMenu
+
+Called when the main menu should be displayed with selected text.
+
+<ParamField path="callback" type="(text: string) => void" required>
+  Function to call when the menu is shown
+  - `text` - The currently selected text in the target application
+</ParamField>
+
+**Returns:** `() => void` - Cleanup function to remove the listener
+
+**Implementation:** `frontend/electron/src/preload.ts:4`
+
+```typescript
+useEffect(() => {
+  const cleanup = window.electron.onShowMenu((selectedText: string) => {
+    setContext(selectedText);
+    setVisible(true);
+  });
+
+  return cleanup; // Remove listener on unmount
+}, []);
+```
+
+---
+
+### onShowSuggestion
+
+Called when an inline suggestion should be displayed.
+
+<ParamField path="callback" type="(data: { context: string }) => void" required>
+  Function to call when a suggestion is available
+  - `data.context` - The context text around the cursor position
+</ParamField>
+
+**Returns:** `() => void` - Cleanup function to remove the listener
+
+**Implementation:** `frontend/electron/src/preload.ts:17`
+
+```typescript
+useEffect(() => {
+  const cleanup = window.electron.onShowSuggestion((data) => {
+    console.log("Context:", data.context);
+    // Fetch AI suggestion based on context
+  });
+
+  return cleanup;
+}, []);
+```
+
+---
+
+## Related APIs
+
+- [Window Management](/api/ipc/window-management) - Control window visibility and position
+- [Settings](/api/ipc/overview#settings-configuration) - Configure suggestion and output modes

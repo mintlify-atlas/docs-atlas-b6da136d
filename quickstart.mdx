@@ -1,80 +1,284 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get Tabby AI Keyboard running in 5 minutes
 ---
 
-## Get started in three steps
+# Quick Start Guide
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+Get Tabby up and running quickly with this streamlined setup guide. This focuses on the essential steps to get you started.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  For a complete setup with all features, see the [full installation guide](/installation).
 </Note>
+
+## Prerequisites
+
+Before you begin, make sure you have:
+
+<Steps>
+  <Step title="Install Required Software">
+    - [Node.js 18+](https://nodejs.org/)
+    - [Python 3.12+](https://www.python.org/downloads/)
+    - [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+    - [pnpm](https://pnpm.io/installation) - Run `npm install -g pnpm`
+    - [uv](https://github.com/astral-sh/uv) - Python package manager
+  </Step>
+  <Step title="Get API Keys">
+    At minimum, you need an [OpenAI API key](https://platform.openai.com/api-keys)
+    
+    Optional providers:
+    - [Google AI](https://ai.google.dev/)
+    - [Groq](https://console.groq.com/)
+    - [Cerebras](https://cerebras.ai/)
+    - [Tavily](https://tavily.ai/) (for web search)
+  </Step>
+</Steps>
+
+## Installation
+
+### 1. Clone and Install
+
+<CodeGroup>
+```bash Terminal
+git clone https://github.com/CubeStar1/ai-keyboard.git
+cd ai-keyboard
+
+# Install frontend dependencies
+cd frontend
+pnpm install
+
+# Install Next.js backend dependencies
+cd ../nextjs-backend
+pnpm install
+
+# Install memory backend dependencies
+cd ../backend
+uv sync
+```
+</CodeGroup>
+
+### 2. Start Supabase
+
+<Info>
+  Tabby uses a local Supabase instance via Docker. Make sure Docker Desktop is running first.
+</Info>
+
+<CodeGroup>
+```bash Terminal
+# From the project root
+npx supabase init    # Only needed the first time
+npx supabase start
+```
+</CodeGroup>
+
+<Note>
+  The first run will download Docker images (~13 images, takes a few minutes). Subsequent starts take ~10 seconds.
+</Note>
+
+After Supabase starts, it will print credentials. **Save these** - you'll need:
+- `API URL`
+- `anon key`
+- `service_role key`
+
+### 3. Configure Environment Variables
+
+Create environment files from the examples:
+
+<CodeGroup>
+```bash Terminal
+# Frontend
+cp frontend/env.example frontend/.env.local
+
+# Next.js Backend
+cp nextjs-backend/env.example nextjs-backend/.env.local
+
+# Memory Backend
+cp backend/env.example backend/.env
+```
+</CodeGroup>
+
+Edit each file with your credentials:
+
+<CodeGroup>
+```env frontend/.env.local
+# Supabase (from `npx supabase status`)
+NEXT_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key-here"
+SUPABASE_ADMIN="your-service-role-key-here"
+
+NEXT_PUBLIC_APP_NAME="Tabby"
+NEXT_PUBLIC_APP_ICON="/logos/tabby-logo.png"
+
+NEXT_PUBLIC_API_URL="http://localhost:3001"
+NEXT_PUBLIC_MEMORY_API_URL="http://localhost:8000"
+```
+
+```env nextjs-backend/.env.local
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key-here"
+SUPABASE_ADMIN="your-service-role-key-here"
+
+NEXT_PUBLIC_APP_NAME=Tabby
+NEXT_PUBLIC_APP_ICON='/logos/tabby-logo.png'
+
+# AI Provider (at minimum, add OpenAI)
+OPENAI_API_KEY="your-openai-key-here"
+
+MEMORY_API_URL="http://localhost:8000"
+```
+
+```env backend/.env
+OPENAI_API_KEY="your-openai-key-here"
+
+# Supabase PostgreSQL (from `npx supabase status`)
+SUPABASE_CONNECTION_STRING="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+```
+</CodeGroup>
+
+### 4. Create Storage Buckets
+
+<Tip>
+  You can create buckets via Supabase Studio at `http://localhost:54323` → Storage, or use this PowerShell command:
+</Tip>
+
+<CodeGroup>
+```powershell PowerShell
+$headers = @{
+  "apikey" = "your-service-role-key-here"
+  "Authorization" = "Bearer your-service-role-key-here"
+  "Content-Type" = "application/json"
+}
+
+Invoke-RestMethod -Uri "http://127.0.0.1:54321/storage/v1/bucket" -Method Post -Headers $headers -Body '{"id":"context-captures","name":"context-captures","public":true}'
+
+Invoke-RestMethod -Uri "http://127.0.0.1:54321/storage/v1/bucket" -Method Post -Headers $headers -Body '{"id":"project-assets","name":"project-assets","public":true}'
+```
+</CodeGroup>
+
+## Running Tabby
+
+Start all services in separate terminal windows:
+
+<Steps>
+  <Step title="Terminal 1: Supabase">
+    ```bash
+    npx supabase start
+    ```
+  </Step>
+  <Step title="Terminal 2: Memory Backend">
+    ```bash
+    cd backend
+    uv run main.py
+    ```
+  </Step>
+  <Step title="Terminal 3: Next.js Backend">
+    ```bash
+    cd nextjs-backend
+    pnpm dev
+    ```
+  </Step>
+  <Step title="Terminal 4: Electron App">
+    ```bash
+    cd frontend
+    pnpm dev
+    ```
+  </Step>
+</Steps>
+
+<Info>
+  The Windows MCP server (Terminal 5: `pnpm run windows-mcp`) is optional and provides additional desktop automation features.
+</Info>
+
+## Verify Installation
+
+Once all services are running, you should see:
+
+- **Supabase Studio**: `http://localhost:54323`
+- **Frontend**: `http://localhost:3000`
+- **Next.js Backend**: `http://localhost:3001`
+- **Memory API**: `http://localhost:8000`
+- **Tabby App**: Running in your system tray
+
+## First Steps
+
+<Steps>
+  <Step title="Access the System Tray">
+    Look for the Tabby icon in your system tray. Right-click for options:
+    - Show Actions Menu
+    - Brain Panel
+    - Settings
+    - Quit
+  </Step>
+  <Step title="Try the Action Menu">
+    Press `Ctrl+\` to open the action menu. Select some text first to see AI actions.
+  </Step>
+  <Step title="Test AI Suggestions">
+    Press `Ctrl+Space` while typing to get AI suggestions for your current context.
+  </Step>
+  <Step title="Open Brain Panel">
+    Press `Ctrl+Shift+B` to view the memory dashboard and see stored memories.
+  </Step>
+</Steps>
+
+## Essential Keyboard Shortcuts
+
+Get started with these key shortcuts:
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl+\` | Open/close action menu |
+| `Ctrl+Space` | Get AI suggestion |
+| `Ctrl+Shift+B` | Toggle brain panel |
+| `Alt+X` | Analyze coding problem (Copilot) |
+| `Alt+N` | Get code suggestions (Copilot) |
+| `Esc` | Back/close any panel |
+
+<Tip>
+  See the full [keyboard shortcuts reference](/shortcuts) for all available commands.
+</Tip>
+
+## Troubleshooting
+
+<Warning>
+  If services fail to start, ensure Docker Desktop is running before starting Supabase.
+</Warning>
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Supabase fails to start">
+    - Ensure Docker Desktop is running
+    - Check if ports 54321-54323 are available
+    - Try `npx supabase stop` then `npx supabase start`
+  </Accordion>
+  
+  <Accordion title="Memory backend fails">
+    - Verify Python 3.12+ is installed
+    - Check that `uv` is installed: `pip install uv`
+    - Ensure the Supabase connection string is correct
+  </Accordion>
+  
+  <Accordion title="Frontend won't start">
+    - Verify all environment variables are set
+    - Check that ports 3000, 3001, and 8000 are available
+    - Try deleting `node_modules` and running `pnpm install` again
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Full Installation" icon="book" href="/installation">
+    Complete setup with optional features like Neo4j knowledge graphs
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/guides/configuration/settings">
+    Configure AI providers, customize shortcuts, and personalize Tabby
+  </Card>
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/shortcuts/overview">
+    Learn all shortcuts to maximize productivity
+  </Card>
+  <Card title="Interview Copilot" icon="code" href="/features/interview-copilot/overview">
+    Master the coding interview assistant features
+  </Card>
+</CardGroup>

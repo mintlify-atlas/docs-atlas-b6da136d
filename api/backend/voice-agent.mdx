@@ -1,0 +1,333 @@
+---
+title: "Voice Agent"
+description: "Create real-time voice AI sessions with desktop automation and conversational memory"
+---
+
+## Overview
+
+The `/api/voice-agent` endpoint initializes real-time voice AI sessions using OpenAI's Realtime API. It provides a conversational voice assistant with access to memory storage, web search, and Windows MCP tools for desktop automation. The endpoint returns session credentials for establishing a WebSocket connection.
+
+<Note>
+This endpoint creates a session token for OpenAI's Realtime API. You'll need to connect to the WebSocket using the returned credentials.
+</Note>
+
+## Endpoint
+
+```
+POST /api/voice-agent
+```
+
+## Authentication
+
+Requires authentication via cookies or Authorization header.
+
+<Warning>
+Returns `401 Unauthorized` if authentication fails.
+</Warning>
+
+## Requirements
+
+<ParamField query="OPENAI_API_KEY" type="environment variable" required>
+  OpenAI API key must be configured in environment variables.
+  
+  Returns `500 Internal Server Error` if not set.
+</ParamField>
+
+## Request Body
+
+<ParamField body="model" type="string">
+  OpenAI Realtime model to use. Defaults to `"gpt-realtime-mini"` if not specified.
+  
+  <Expandable title="Available models">
+    - `gpt-realtime-mini`: Faster, more cost-effective real-time model
+    - `gpt-4-realtime`: More capable model with advanced reasoning
+  </Expandable>
+</ParamField>
+
+<ParamField body="voice" type="string">
+  Voice personality for the assistant. Defaults to `"ash"` if not specified.
+  
+  <Expandable title="Available voices">
+    OpenAI provides several voice options:
+    - `ash`: Balanced, neutral voice
+    - `sage`: Calm, thoughtful voice
+    - `coral`: Warm, friendly voice
+    - `alloy`: Professional voice
+    - `echo`: Clear, articulate voice
+    - `shimmer`: Bright, energetic voice
+  </Expandable>
+</ParamField>
+
+## Response
+
+Returns a JSON object containing the OpenAI Realtime session credentials:
+
+<ResponseField name="id" type="string">
+  Unique session ID for the Realtime API connection.
+</ResponseField>
+
+<ResponseField name="model" type="string">
+  The model being used for this session.
+</ResponseField>
+
+<ResponseField name="expires_at" type="number">
+  Unix timestamp when the session expires.
+</ResponseField>
+
+<ResponseField name="client_secret" type="object">
+  WebSocket connection credentials.
+  
+  <Expandable title="Client secret structure">
+    ```json
+    {
+      "value": "wss://api.openai.com/v1/realtime?model=gpt-realtime-mini",
+      "expires_at": 1234567890
+    }
+    ```
+  </Expandable>
+</ResponseField>
+
+## Available Tools
+
+The voice agent has access to all tools in the system:
+
+### Memory Tools
+
+<Expandable title="searchMemory">
+  Search user memories to personalize responses. The assistant is instructed to search for user identity and context at the start of every conversation.
+  
+  **Parameters:**
+  - `query` (string): Search query (e.g., "who is this user", "user preferences")
+  - `userId` (string): Automatically set to authenticated user
+  - `limit` (number, optional): Maximum results
+</Expandable>
+
+<Expandable title="addMemory">
+  Store new information about the user. The assistant aggressively stores:
+  - User's name (highest priority)
+  - Job title, company, role
+  - Preferences and communication style
+  - Projects and tasks
+  - Any personal details shared
+  
+  **Parameters:**
+  - `messages` (array): Conversation messages to extract memories from
+  - `userId` (string): Automatically set to authenticated user
+</Expandable>
+
+<Expandable title="getAllMemories">
+  Retrieve all stored memories for context.
+  
+  **Parameters:**
+  - `userId` (string): Automatically set to authenticated user
+</Expandable>
+
+### Web Search
+
+<Expandable title="tavilySearchTool">
+  Search the web for current information, news, and research.
+  
+  **Parameters:**
+  - `query` (string): Search query
+</Expandable>
+
+### Windows MCP Tools
+
+Full desktop automation capabilities:
+
+- **State-Tool**: Capture desktop state and interactive elements
+- **Click-Tool**: Click at coordinates
+- **Type-Tool**: Type text at coordinates
+- **Move-Tool**: Move mouse cursor
+- **Drag-Tool**: Drag and drop
+- **Scroll-Tool**: Scroll windows
+- **Shortcut-Tool**: Execute keyboard shortcuts
+- **App-Tool**: Launch/resize/switch applications
+- **Powershell-Tool**: Execute PowerShell commands (preferred for opening apps/files/URLs)
+- **Wait-Tool**: Pause for UI loading
+- **Scrape-Tool**: Fetch content from URLs or browser tabs
+
+### Voice-Specific Tools
+
+Additional tools defined in `DEFAULT_VOICE_TOOLS` for voice interaction features.
+
+## Example Request
+
+```javascript
+const response = await fetch('/api/voice-agent', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'gpt-realtime-mini',
+    voice: 'ash'
+  })
+});
+
+const session = await response.json();
+console.log(session);
+```
+
+## Example Response
+
+```json
+{
+  "id": "sess_abc123xyz",
+  "model": "gpt-realtime-mini",
+  "expires_at": 1234567890,
+  "client_secret": {
+    "value": "wss://api.openai.com/v1/realtime?model=gpt-realtime-mini",
+    "expires_at": 1234567890
+  },
+  "modalities": ["text", "audio"],
+  "instructions": "You are a voice AI assistant...",
+  "voice": "ash",
+  "input_audio_format": "pcm16",
+  "output_audio_format": "pcm16",
+  "input_audio_transcription": {
+    "model": "whisper-1"
+  },
+  "turn_detection": {
+    "type": "server_vad"
+  },
+  "tools": [...]
+}
+```
+
+## Connecting to the WebSocket
+
+Once you have the session credentials, connect to the Realtime API:
+
+```javascript
+const ws = new WebSocket(session.client_secret.value);
+
+ws.onopen = () => {
+  console.log('Connected to voice agent');
+  
+  // Send audio or text messages
+  ws.send(JSON.stringify({
+    type: 'conversation.item.create',
+    item: {
+      type: 'message',
+      role: 'user',
+      content: [{
+        type: 'input_text',
+        text: 'Hello, who am I?'
+      }]
+    }
+  }));
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Received:', data);
+  
+  // Handle different event types:
+  // - conversation.item.created
+  // - response.audio.delta (audio chunks)
+  // - response.done
+  // - etc.
+};
+
+ws.onerror = (error) => {
+  console.error('WebSocket error:', error);
+};
+
+ws.onclose = () => {
+  console.log('Disconnected from voice agent');
+};
+```
+
+## Sending Audio Input
+
+```javascript
+// Send PCM16 audio data
+const audioData = new Int16Array(buffer); // Your audio buffer
+const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioData.buffer)));
+
+ws.send(JSON.stringify({
+  type: 'input_audio_buffer.append',
+  audio: base64Audio
+}));
+
+// Commit the audio buffer when user stops speaking
+ws.send(JSON.stringify({
+  type: 'input_audio_buffer.commit'
+}));
+```
+
+## Error Responses
+
+<ResponseField name="401 Unauthorized" type="error">
+  Returned when authentication fails.
+  
+  ```json
+  "Unauthorized"
+  ```
+</ResponseField>
+
+<ResponseField name="500 Internal Server Error" type="error">
+  Returned when OpenAI API key is not configured or OpenAI API request fails.
+  
+  ```json
+  {
+    "error": "OPENAI_API_KEY is not set"
+  }
+  ```
+  
+  ```json
+  {
+    "error": "OpenAI API error: 500"
+  }
+  ```
+</ResponseField>
+
+## Features
+
+- **Real-time Voice Interaction**: Natural conversational voice AI with low latency
+- **Automatic Transcription**: Uses Whisper-1 for input audio transcription
+- **Server VAD**: Server-side Voice Activity Detection for natural turn-taking
+- **Memory-Powered**: Remembers user context and personalizes responses
+- **Desktop Automation**: Full control over Windows desktop via voice commands
+- **Web Search Integration**: Access to current information via Tavily
+- **Tool Calling**: Can invoke multiple tools during conversation
+- **Conversational Style**: Speaks naturally, avoiding markdown and code blocks in speech
+
+## Voice Assistant Behavior
+
+The voice agent is optimized for natural conversation:
+
+<Info>
+- Searches user memories **immediately** at conversation start
+- Addresses users by name if known
+- Stores new personal information **aggressively**
+- Uses conversational language (avoids markdown/bullets in speech)
+- Proactively helps with workflow automation
+- Remembers daily routines and can execute them on command
+</Info>
+
+## Use Cases
+
+- **Hands-free Desktop Control**: Control Windows applications by voice
+- **Voice-Activated Workflows**: "Prep my workspace" to open all work apps
+- **Conversational Memory**: "What did I work on yesterday?"
+- **Real-time Information**: "What's in the news about AI today?"
+- **Personalized Assistant**: Learns your preferences and habits over time
+- **Accessibility**: Voice control for users who prefer or require hands-free interaction
+
+## Best Practices
+
+<Tip>
+- Handle WebSocket reconnection logic for robust voice experiences
+- Process audio in chunks for smooth streaming
+- Monitor the `expires_at` timestamp and refresh sessions as needed
+- Use Server VAD for natural conversation flow
+- The assistant learns from every interaction - more conversations = better personalization
+- Voice commands like "prep my day" can trigger complex automation workflows if you've told the assistant about your routine
+</Tip>
+
+## Related Documentation
+
+- [OpenAI Realtime API Documentation](https://platform.openai.com/docs/api-reference/realtime)
+- [WebSocket Connection Guide](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket)

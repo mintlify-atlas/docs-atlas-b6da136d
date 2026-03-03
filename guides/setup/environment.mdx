@@ -1,0 +1,232 @@
+---
+title: Environment Variables
+description: Configure environment variables for Tabby AI Keyboard frontend, backend, and memory service
+---
+
+Tabby requires environment variables to be configured across three components: the frontend, Next.js backend, and Python memory backend.
+
+## Prerequisites
+
+Before configuring environment variables:
+
+1. Complete the [database setup](/guides/setup/database)
+2. Run `npx supabase status` to get your Supabase credentials
+3. Have your API keys ready (OpenAI, Tavily, etc.)
+
+## Create Environment Files
+
+Copy the example files to create your environment configuration:
+
+```bash
+# Frontend
+cp frontend/env.example frontend/.env.local
+
+# Next.js Backend
+cp nextjs-backend/env.example nextjs-backend/.env.local
+
+# Memory Backend
+cp backend/env.example backend/.env
+```
+
+## Frontend Configuration
+
+Edit `frontend/.env.local`:
+
+```env
+# Supabase (local Docker) — get values from `npx supabase status`
+NEXT_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="<ANON_KEY from supabase status>"
+
+NEXT_PUBLIC_APP_NAME="Tabby"
+NEXT_PUBLIC_APP_ICON="/logos/tabby-logo.png"
+
+NEXT_PUBLIC_API_URL="http://localhost:3001"
+NEXT_PUBLIC_MEMORY_API_URL="http://localhost:8000"
+```
+
+### Frontend Variables Explained
+
+<AccordionGroup>
+  <Accordion title="NEXT_PUBLIC_SUPABASE_URL">
+    Your local Supabase API URL. For local development, this is `http://127.0.0.1:54321`.
+    
+    Get this from `npx supabase status` output.
+  </Accordion>
+  
+  <Accordion title="NEXT_PUBLIC_SUPABASE_ANON_KEY">
+    The anonymous key for client-side Supabase requests.
+    
+    Get this from `npx supabase status` output.
+  </Accordion>
+  
+  <Accordion title="NEXT_PUBLIC_API_URL">
+    URL for the Next.js backend API. Default is `http://localhost:3001`.
+  </Accordion>
+  
+  <Accordion title="NEXT_PUBLIC_MEMORY_API_URL">
+    URL for the Python memory backend. Default is `http://localhost:8000`.
+  </Accordion>
+</AccordionGroup>
+
+## Next.js Backend Configuration
+
+Edit `nextjs-backend/.env.local`:
+
+```env
+# Supabase (local Docker) — same keys as frontend
+NEXT_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="<ANON_KEY from supabase status>"
+SUPABASE_ADMIN="<SERVICE_ROLE_KEY from supabase status>"
+
+# Email (optional)
+RESEND_API_KEY=""
+RESEND_DOMAIN=""
+
+NEXT_PUBLIC_APP_NAME="Tabby"
+NEXT_PUBLIC_APP_ICON="/logos/tabby-logo.png"
+
+# AI Providers
+OPENAI_API_KEY=""
+GOOGLE_GENERATIVE_AI_API_KEY=""
+GROQ_API_KEY=""
+CEREBRAS_API_KEY=""
+OPENROUTER_API_KEY=""
+
+# Tools
+TAVILY_API_KEY=""
+
+MEMORY_API_URL="http://localhost:8000"
+```
+
+### Backend Variables Explained
+
+<AccordionGroup>
+  <Accordion title="Supabase Keys">
+    - **NEXT_PUBLIC_SUPABASE_URL**: Same as frontend
+    - **NEXT_PUBLIC_SUPABASE_ANON_KEY**: Same as frontend
+    - **SUPABASE_ADMIN**: Service role key for admin operations (from `npx supabase status`)
+  </Accordion>
+  
+  <Accordion title="AI Provider Keys">
+    **OPENAI_API_KEY** (Required)
+    - Get from [platform.openai.com](https://platform.openai.com)
+    - Required for core AI functionality
+    
+    **Optional Providers:**
+    - **GOOGLE_GENERATIVE_AI_API_KEY**: Google's Gemini models
+    - **GROQ_API_KEY**: Fast inference platform
+    - **CEREBRAS_API_KEY**: High-performance inference
+    - **OPENROUTER_API_KEY**: Access to multiple models
+  </Accordion>
+  
+  <Accordion title="Tool API Keys">
+    **TAVILY_API_KEY** (Recommended)
+    - Required for web search functionality
+    - Get from [tavily.ai](https://tavily.ai/)
+  </Accordion>
+  
+  <Accordion title="Email Configuration (Optional)">
+    If you want to enable email notifications:
+    - **RESEND_API_KEY**: API key from [resend.com](https://resend.com)
+    - **RESEND_DOMAIN**: Your verified domain
+  </Accordion>
+</AccordionGroup>
+
+## Memory Backend Configuration
+
+Edit `backend/.env`:
+
+```env
+OPENAI_API_KEY=""
+
+# Local Supabase PostgreSQL — get DB_URL from `npx supabase status`
+SUPABASE_CONNECTION_STRING="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+
+# Neo4j (optional - see Neo4j setup guide)
+NEO4J_URL=""
+NEO4J_USERNAME=""
+NEO4J_PASSWORD=""
+NEO4J_DATABASE=""
+AURA_INSTANCEID=""
+AURA_INSTANCENAME=""
+```
+
+### Memory Backend Variables Explained
+
+<AccordionGroup>
+  <Accordion title="OPENAI_API_KEY">
+    Same OpenAI API key as the Next.js backend.
+  </Accordion>
+  
+  <Accordion title="SUPABASE_CONNECTION_STRING">
+    PostgreSQL connection string for local Supabase.
+    
+    Format: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
+    
+    <Note>
+      Note the port `54322` for direct PostgreSQL connection (different from the API port `54321`)
+    </Note>
+    
+    You can verify this with `npx supabase status` and look for the "DB URL" value.
+  </Accordion>
+  
+  <Accordion title="Neo4j Variables (Optional)">
+    Only required if you're using the knowledge graph feature. See the [Neo4j setup guide](/guides/setup/neo4j) for details.
+    
+    - **NEO4J_URL**: Your Neo4j instance URI
+    - **NEO4J_USERNAME**: Database username (usually "neo4j")
+    - **NEO4J_PASSWORD**: Database password
+    - **NEO4J_DATABASE**: Database name (usually "neo4j")
+    - **AURA_INSTANCEID**: Your AuraDB instance ID (if using Neo4j Aura)
+    - **AURA_INSTANCENAME**: Your AuraDB instance name (if using Neo4j Aura)
+  </Accordion>
+</AccordionGroup>
+
+## Getting Supabase Credentials
+
+To get all your Supabase credentials at once:
+
+```bash
+npx supabase status
+```
+
+This outputs:
+- **API URL**: Use for `NEXT_PUBLIC_SUPABASE_URL`
+- **anon key**: Use for `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- **service_role key**: Use for `SUPABASE_ADMIN`
+- **DB URL**: Use for `SUPABASE_CONNECTION_STRING`
+
+## Verification
+
+After configuring all environment files, verify your setup:
+
+<Steps>
+  <Step title="Check file existence">
+    Make sure all three `.env` files exist:
+    
+    ```bash
+    ls frontend/.env.local
+    ls nextjs-backend/.env.local
+    ls backend/.env
+    ```
+  </Step>
+  
+  <Step title="Verify required keys">
+    At minimum, you need:
+    - Supabase URL and keys in all three files
+    - OpenAI API key in backend files
+    - Tavily API key (recommended for web search)
+  </Step>
+</Steps>
+
+<Warning>
+  Never commit `.env` files to version control. They are already included in `.gitignore`.
+</Warning>
+
+## Next Steps
+
+With environment variables configured, you can:
+
+1. [Run the application](/quickstart) and start all services
+2. Optionally [set up Neo4j](/guides/setup/neo4j) for knowledge graph features
+3. Start developing with Tabby AI Keyboard

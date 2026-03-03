@@ -1,0 +1,177 @@
+---
+title: Building for Production
+description: Learn how to create a local production build of Tabby AI Keyboard for Windows and Linux
+---
+
+This guide walks you through building Tabby AI Keyboard locally for production deployment.
+
+## Prerequisites
+
+Before building, ensure you have:
+
+- Node.js 20 or higher
+- pnpm package manager (version 9)
+- All required environment variables configured in `.env.local`
+
+## Build Scripts Overview
+
+The build process uses several npm scripts defined in `frontend/package.json:12-19`:
+
+<CodeGroup>
+```json npm scripts
+{
+  "build": "run-s next:build electron:build",
+  "dist": "run-s build electron:dist",
+  "next:build": "next build --turbopack",
+  "electron:build": "tsup",
+  "electron:dist": "electron-builder",
+  "electron:dist:deb": "electron-builder --linux deb"
+}
+```
+</CodeGroup>
+
+## Building for Windows
+
+<Steps>
+
+<Step title="Navigate to frontend directory">
+Open your terminal and change to the frontend directory:
+
+```bash
+cd frontend
+```
+</Step>
+
+<Step title="Install dependencies">
+Install all required dependencies using pnpm:
+
+```bash
+pnpm install
+```
+</Step>
+
+<Step title="Run the build command">
+Execute the dist command to create the production executable:
+
+```bash
+pnpm run dist
+```
+
+Or using npm:
+
+```bash
+npm run dist
+```
+
+This command:
+- Builds the Next.js application with Turbopack
+- Compiles the Electron main process using tsup
+- Packages everything into a Windows installer using electron-builder
+</Step>
+
+<Step title="Locate the executable">
+The resulting `.exe` installer will be created in:
+
+```
+frontend/dist/
+```
+
+The installer uses NSIS (Nullsoft Scriptable Install System) with the following configuration:
+- Allows user to choose installation directory
+- Creates desktop and start menu shortcuts
+- Supports per-machine installation
+</Step>
+
+</Steps>
+
+## Building for Linux
+
+<Steps>
+
+<Step title="Navigate to frontend directory">
+```bash
+cd frontend
+```
+</Step>
+
+<Step title="Run the Linux build command">
+To create a Debian package (.deb):
+
+```bash
+pnpm run electron:dist:deb
+```
+
+This creates a `.deb` package in the `frontend/dist/` directory.
+</Step>
+
+</Steps>
+
+<Note>
+The Linux build is configured in `package.json:197-203` to target the Development category and includes proper icon configuration.
+</Note>
+
+## Build Configuration
+
+The electron-builder configuration in `package.json` includes:
+
+### Application Settings
+
+- **Product Name**: Tabby
+- **App ID**: com.tabby.ai-keyboard
+- **ASAR Packaging**: Enabled for code protection
+
+### Included Files
+
+The build packages:
+- Electron build artifacts (`build/`)
+- Next.js standalone output (`.next/standalone`)
+- Static assets (`.next/static`)
+- Public files (`public/`)
+- Required native modules (`*.node`, `*.dll`)
+
+### Windows NSIS Installer
+
+```json
+{
+  "oneClick": false,
+  "perMachine": true,
+  "allowToChangeInstallationDirectory": true,
+  "createDesktopShortcut": true,
+  "createStartMenuShortcut": true
+}
+```
+
+<Warning>
+Make sure all environment variables from `.env.local` are properly set before building, especially:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_MEMORY_API_URL`
+</Warning>
+
+## Troubleshooting
+
+### Build Fails on Windows
+
+If the build fails, ensure:
+- You have the latest Windows Build Tools installed
+- Visual Studio C++ build tools are available
+- All dependencies installed successfully with `pnpm install`
+
+### Missing Dependencies
+
+The postinstall script automatically runs `electron-builder install-app-deps`. If you encounter native module issues, try:
+
+```bash
+pnpm run postinstall
+```
+
+### TypeScript Errors
+
+Run type checking before building:
+
+```bash
+pnpm run typecheck
+```
+
+This runs `tsc --noEmit` to check for TypeScript errors without generating output files.

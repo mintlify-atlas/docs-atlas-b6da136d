@@ -1,0 +1,345 @@
+---
+title: Backend Deployment
+description: Deploy the Python backend to Azure Container Apps and Next.js backend to Vercel with automated CI/CD
+---
+
+Tabby AI Keyboard has two backend services with fully automated deployment pipelines: a Python backend on Azure Container Apps and a Next.js shared API backend on Vercel.
+
+## Python Backend (Azure Container Apps)
+
+The Python backend provides memory and AI processing services, deployed to Azure Container Apps with automated CI/CD.
+
+### Deployment Overview
+
+- **Platform**: Azure Container Apps
+- **Workflow**: `.github/workflows/backend-deploy.yml`
+- **Container Registry**: Docker Hub (`thecubestar/tabby-backend`)
+- **Production URL**: [tabby-backend.jollydesert-22a4756c.centralindia.azurecontainerapps.io](https://tabby-backend.jollydesert-22a4756c.centralindia.azurecontainerapps.io)
+- **Trigger**: Push to `backend/` directory on `main` branch
+
+### Prerequisites
+
+<Steps>
+
+<Step title="Configure Azure resources">
+Create the following Azure resources:
+
+- **Resource Group**: `tabby-rg` (or your preferred name)
+- **Container App**: `tabby-backend`
+- **Container Apps Environment**: Required for running the container app
+
+<Note>
+You can create these via Azure Portal or Azure CLI. The deployment workflow assumes these resources already exist.
+</Note>
+</Step>
+
+<Step title="Set up GitHub Secrets">
+Add these secrets to your GitHub repository (**Settings** → **Secrets and variables** → **Actions**):
+
+| Secret Name | Description |
+|------------|-------------|
+| `DOCKER_USERNAME` | Your Docker Hub username |
+| `DOCKER_PASSWORD` | Your Docker Hub password or access token |
+| `AZURE_CREDENTIALS` | Azure service principal credentials (JSON) |
+
+<Warning>
+For `AZURE_CREDENTIALS`, you need to create a service principal with contributor access to your resource group. See [Azure documentation](https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure) for details.
+</Warning>
+</Step>
+
+</Steps>
+
+### Docker Configuration
+
+The backend uses a multi-stage Python 3.12 Dockerfile (`backend/Dockerfile:1-24`):
+
+<CodeGroup>
+```dockerfile Dockerfile
+# Use Python 3.12 slim image
+FROM python:3.12-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install uv for fast dependency management
+RUN pip install uv
+
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+
+# Install dependencies
+RUN uv sync --frozen --no-dev
+
+# Copy application code
+COPY main.py .
+
+# Expose the port
+EXPOSE 8000
+
+# Run the application
+CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+</CodeGroup>
+
+Key features:
+- Uses **uv** for fast dependency management
+- Python 3.12 slim base image for minimal size
+- Runs **uvicorn** ASGI server on port 8000
+- Production-ready with `--frozen` dependency installation
+
+### Deployment Workflow
+
+The Azure deployment workflow automatically triggers when:
+
+```yaml
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-deploy.yml"
+  workflow_dispatch:
+```
+
+<Steps>
+
+<Step title="Build Docker image">
+The workflow builds a Docker image using buildx with caching:
+
+```yaml
+- name: Build and push Docker image
+  uses: docker/build-push-action@v5
+  with:
+    context: ./backend
+    push: true
+    tags: |
+      thecubestar/tabby-backend:latest
+      thecubestar/tabby-backend:${{ github.sha }}
+    cache-from: type=gha
+    cache-to: type=gha,mode=max
+```
+
+Each build creates two tags:
+- `latest`: Points to the most recent build
+- `<git-sha>`: Immutable tag for the specific commit
+</Step>
+
+<Step title="Push to Docker Hub">
+The image is pushed to Docker Hub repository `thecubestar/tabby-backend`.
+</Step>
+
+<Step title="Deploy to Azure">
+The Azure Container App is updated with the new image:
+
+```yaml
+- name: Deploy to Azure Container Apps
+  uses: azure/CLI@v1
+  with:
+    inlineScript: |
+      az containerapp update \
+        --name tabby-backend \
+        --resource-group tabby-rg \
+        --image thecubestar/tabby-backend:${{ github.sha }}
+```
+
+This performs a zero-downtime rolling update.
+</Step>
+
+</Steps>
+
+### Environment Variables
+
+The workflow sets these environment variables:
+
+```yaml
+env:
+  IMAGE_NAME: thecubestar/tabby-backend
+  AZURE_CONTAINER_APP: tabby-backend
+  AZURE_RESOURCE_GROUP: tabby-rg
+```
+
+<Note>
+Modify these values in `.github/workflows/backend-deploy.yml` if you use different resource names.
+</Note>
+
+### Manual Deployment
+
+To deploy manually:
+
+<Steps>
+
+<Step title="Build Docker image locally">
+```bash
+cd backend
+docker build -t thecubestar/tabby-backend:manual .
+```
+</Step>
+
+<Step title="Push to Docker Hub">
+```bash
+docker push thecubestar/tabby-backend:manual
+```
+</Step>
+
+<Step title="Update Azure Container App">
+```bash
+az containerapp update \
+  --name tabby-backend \
+  --resource-group tabby-rg \
+  --image thecubestar/tabby-backend:manual
+```
+</Step>
+
+</Steps>
+
+## Next.js Backend (Vercel)
+
+The Next.js shared API backend provides common API endpoints, deployed to Vercel.
+
+### Deployment Overview
+
+- **Platform**: Vercel
+- **Workflow**: `.github/workflows/vercel-deploy.yml`
+- **Production URL**: [tabby-api-psi.vercel.app](https://tabby-api-psi.vercel.app)
+- **Trigger**: Push to `nextjs-backend/` directory on `main` branch
+
+### Prerequisites
+
+<Steps>
+
+<Step title="Create Vercel project">
+1. Sign in to [Vercel](https://vercel.com)
+2. Create a new project from your repository
+3. Set the root directory to `nextjs-backend`
+4. Note the **Organization ID** and **Project ID**
+</Step>
+
+<Step title="Generate Vercel token">
+1. Go to **Settings** → **Tokens** in Vercel dashboard
+2. Create a new token with appropriate scopes
+3. Save the token securely
+</Step>
+
+<Step title="Configure GitHub Secrets">
+Add these secrets to your repository:
+
+| Secret Name | Description |
+|------------|-------------|
+| `VERCEL_TOKEN` | Your Vercel authentication token |
+| `ORG_ID` | Your Vercel organization ID |
+| `PROJECT_ID` | Your Vercel project ID |
+| `GH_TOKEN` | GitHub token for workflow operations |
+</Step>
+
+</Steps>
+
+### Deployment Workflow
+
+The Vercel deployment workflow (`.github/workflows/vercel-deploy.yml:1-22`) automatically deploys on changes:
+
+```yaml
+on:
+  push:
+    branches: [main]
+    paths:
+      - "nextjs-backend/**"
+      - ".github/workflows/vercel-deploy.yml"
+  workflow_dispatch:
+```
+
+<Steps>
+
+<Step title="Checkout code">
+```yaml
+- uses: actions/checkout@v4
+```
+</Step>
+
+<Step title="Deploy to Vercel">
+```yaml
+- uses: amondnet/vercel-action@v20
+  with:
+    vercel-token: ${{ secrets.VERCEL_TOKEN }}
+    github-token: ${{ secrets.GH_TOKEN }}
+    vercel-args: "--prod"
+    vercel-org-id: ${{ secrets.ORG_ID}}
+    vercel-project-id: ${{ secrets.PROJECT_ID}}
+    working-directory: nextjs-backend
+```
+
+The `--prod` flag ensures deployment to production (not preview).
+</Step>
+
+</Steps>
+
+### Environment Variables in Vercel
+
+Configure environment variables in Vercel dashboard:
+
+1. Go to your project **Settings** → **Environment Variables**
+2. Add required variables for your Next.js backend
+3. Set appropriate environments (Production, Preview, Development)
+
+<Warning>
+Environment variables set in Vercel are separate from GitHub Secrets. Make sure to configure both.
+</Warning>
+
+## Monitoring Deployments
+
+### Azure Container Apps
+
+Monitor your Python backend:
+
+1. **Azure Portal**: View logs and metrics in Container Apps
+2. **Application Insights**: Configure for detailed telemetry
+3. **GitHub Actions**: Check workflow runs for deployment status
+
+### Vercel
+
+Monitor your Next.js backend:
+
+1. **Vercel Dashboard**: View deployment logs and analytics
+2. **GitHub Actions**: Check workflow status
+3. **Vercel CLI**: Use `vercel logs` for real-time logs
+
+## Rollback Procedures
+
+### Azure Container Apps
+
+Rollback to a previous image:
+
+```bash
+az containerapp update \
+  --name tabby-backend \
+  --resource-group tabby-rg \
+  --image thecubestar/tabby-backend:<previous-commit-sha>
+```
+
+### Vercel
+
+1. Go to **Deployments** in Vercel dashboard
+2. Find the previous successful deployment
+3. Click **Promote to Production**
+
+## Troubleshooting
+
+### Azure Deployment Fails
+
+- Check Azure credentials are valid and have proper permissions
+- Verify Docker Hub credentials in GitHub Secrets
+- Review workflow logs for specific error messages
+- Ensure resource group and container app exist
+
+### Vercel Deployment Fails
+
+- Verify Vercel token is valid
+- Check organization ID and project ID are correct
+- Review build logs in Vercel dashboard
+- Ensure `nextjs-backend` directory has valid Next.js project
+
+### Container App Not Starting
+
+- Check application logs in Azure Portal
+- Verify environment variables are set correctly
+- Test Docker image locally before deploying
+- Ensure port 8000 is exposed and application binds to `0.0.0.0`

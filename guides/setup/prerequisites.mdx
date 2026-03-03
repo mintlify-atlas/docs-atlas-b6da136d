@@ -1,0 +1,90 @@
+---
+title: Prerequisites
+description: System requirements and tools needed to run Tabby AI Keyboard
+---
+
+Before setting up Tabby AI Keyboard, ensure you have the following tools and accounts ready.
+
+## Required Software
+
+<Steps>
+  <Step title="Node.js 18+">
+    Download and install from [nodejs.org](https://nodejs.org)
+  </Step>
+  
+  <Step title="Python 3.12+">
+    Required for the memory backend. Download from [python.org](https://python.org)
+  </Step>
+  
+  <Step title="uv (Python package manager)">
+    Install from [astral-sh/uv](https://github.com/astral-sh/uv)
+    
+    ```bash
+    # macOS/Linux
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    
+    # Windows
+    powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+    ```
+  </Step>
+  
+  <Step title="pnpm">
+    Install the fast, disk space efficient package manager:
+    
+    ```bash
+    npm install -g pnpm
+    ```
+  </Step>
+  
+  <Step title="Docker Desktop">
+    Required for running local Supabase. Download from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/)
+    
+    <Warning>
+      Make sure Docker Desktop is running before starting Supabase
+    </Warning>
+  </Step>
+</Steps>
+
+## Required API Keys
+
+<Steps>
+  <Step title="OpenAI API Key">
+    Create an account and get your API key from [platform.openai.com](https://platform.openai.com)
+    
+    <Note>
+      This is required for the AI features to work
+    </Note>
+  </Step>
+  
+  <Step title="Tavily API Key (Web Search)">
+    Sign up at [tavily.ai](https://tavily.ai/) for web search capabilities
+  </Step>
+</Steps>
+
+## Optional API Keys
+
+These providers can be used as alternatives or supplements to OpenAI:
+
+- **Google Generative AI** - Get your key from [ai.google.dev](https://ai.google.dev)
+- **XAI** - API key from XAI platform
+- **Groq** - Fast inference at [groq.com](https://groq.com)
+- **Cerebras** - High-performance inference
+- **OpenRouter** - Access multiple models through one API at [openrouter.ai](https://openrouter.ai)
+
+## Optional Services
+
+### Neo4j (Knowledge Graph)
+
+For advanced knowledge graph features, you can set up a Neo4j instance. See the [Neo4j setup guide](/guides/setup/neo4j) for details.
+
+<Info>
+  The knowledge graph is completely optional. Tabby works perfectly fine without it.
+</Info>
+
+## Next Steps
+
+Once you have all prerequisites installed, proceed to:
+
+1. Clone the repository and install dependencies
+2. [Set up the local database](/guides/setup/database)
+3. [Configure environment variables](/guides/setup/environment)

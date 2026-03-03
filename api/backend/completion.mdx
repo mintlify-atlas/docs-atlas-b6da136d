@@ -1,0 +1,267 @@
+---
+title: "Completion"
+description: "Stream intelligent inline text completions with personalized writing assistance"
+---
+
+## Overview
+
+The `/api/completion` endpoint provides intelligent inline writing assistance for text completions, transformations, grammar fixes, and style adjustments. It's designed for seamless integration into text editors and input fields, offering personalized suggestions based on user memory.
+
+<Note>
+This endpoint returns Server-Sent Events (SSE) for streaming completions.
+</Note>
+
+## Endpoint
+
+```
+POST /api/completion
+```
+
+## Authentication
+
+Requires authentication via cookies or Authorization header. Alternatively, accepts `userId` in request body for internal calls.
+
+<Warning>
+Returns `401 Unauthorized` if authentication fails.
+</Warning>
+
+## Request Body
+
+<ParamField body="messages" type="UIMessage[]" required>
+  Array of messages containing the text to complete or transform. Typically contains a single user message with the input text.
+  
+  ```typescript
+  interface UIMessage {
+    id: string
+    role: 'user' | 'assistant' | 'system'
+    content: string
+    parts?: any[]
+  }
+  ```
+</ParamField>
+
+<ParamField body="action" type="ActionType" required>
+  The type of completion or transformation to perform.
+  
+  <Expandable title="Available actions">
+    - `fix-grammar`: Correct grammar and spelling errors
+    - `shorten`: Make text more concise
+    - `expand`: Add detail and expand text
+    - `professional-tone`: Convert to professional tone
+    - `casual-tone`: Convert to casual tone
+    - `friendly-tone`: Convert to friendly tone
+    - `email-writer`: Format as professional email
+    - `custom`: Use custom prompt
+    - `chat`: General chat completion
+    - Any custom string for specialized actions
+  </Expandable>
+</ParamField>
+
+<ParamField body="customPrompt" type="string">
+  Custom instructions to prepend to the system prompt. Used when `action` is `"custom"` or when you want to provide additional context.
+  
+  ```javascript
+  {
+    "action": "custom",
+    "customPrompt": "Translate this to Spanish and make it formal"
+  }
+  ```
+</ParamField>
+
+<ParamField body="userId" type="string">
+  User identifier. Used as fallback if authentication via cookies/headers is not available.
+</ParamField>
+
+## Response
+
+Returns a Server-Sent Events (SSE) stream with JSON payloads:
+
+<ResponseField name="type" type="string">
+  Event type (`text`, `tool-call`, `tool-result`, `reasoning`, `finish`).
+</ResponseField>
+
+<ResponseField name="content" type="string">
+  Text chunk or event content. For completions, this contains the transformed/completed text.
+</ResponseField>
+
+<ResponseField name="id" type="string">
+  Unique message or chunk ID.
+</ResponseField>
+
+## Available Tools
+
+The completion endpoint has access to memory tools for personalization:
+
+<Expandable title="searchMemory">
+  **Automatically called before every completion** to personalize the response based on:
+  - User's writing style preferences (formal/casual, verbose/concise)
+  - Email signatures and tone preferences
+  - Technical terminology and tech stack
+  - Previous corrections and feedback
+  
+  **Parameters:**
+  - `query` (string): Search query extracted from context
+  - `userId` (string): User identifier
+  - `limit` (number, optional): Maximum results (default: 5)
+</Expandable>
+
+<Expandable title="addMemory">
+  Stores new insights about the user's preferences when they make corrections or reveal new information.
+  
+  **Parameters:**
+  - `messages` (array): Conversation messages containing user preferences
+  - `userId` (string): User identifier
+</Expandable>
+
+<Expandable title="tavilySearchTool">
+  Web search for current information when needed for content generation.
+  
+  **Parameters:**
+  - `query` (string): Search query
+</Expandable>
+
+## Behavior
+
+<Info>
+The completion endpoint is designed to:
+- Return **only** the final transformed text (no explanations or preambles)
+- **Always search memory first** to personalize the output
+- Match the user's preferred writing style and tone
+- Preserve formatting and capitalization preferences
+- Store corrections and feedback for future improvements
+</Info>
+
+## Example Request
+
+```javascript
+const response = await fetch('/api/completion', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    messages: [
+      {
+        id: '1',
+        role: 'user',
+        content: 'hey can u send me the report tmrw'
+      }
+    ],
+    action: 'professional-tone'
+  })
+});
+
+// Handle SSE stream
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+let result = '';
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const chunk = decoder.decode(value);
+  const lines = chunk.split('\n');
+  
+  for (const line of lines) {
+    if (line.startsWith('data: ')) {
+      const data = JSON.parse(line.slice(6));
+      if (data.type === 'text') {
+        result += data.content;
+      }
+    }
+  }
+}
+
+console.log(result); // "Hello, could you please send me the report tomorrow?"
+```
+
+## Example with Custom Prompt
+
+```javascript
+const response = await fetch('/api/completion', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    messages: [
+      {
+        id: '1',
+        role: 'user',
+        content: 'function add(a, b) { return a + b }'
+      }
+    ],
+    action: 'custom',
+    customPrompt: 'Add TypeScript types and JSDoc comments'
+  })
+});
+```
+
+## Example Response Stream
+
+```
+data: {"type":"reasoning","content":"Searching user preferences..."}
+
+data: {"type":"text","content":"Hello"}
+
+data: {"type":"text","content":","}
+
+data: {"type":"text","content":" could"}
+
+data: {"type":"text","content":" you"}
+
+data: {"type":"text","content":" please"}
+
+data: {"type":"text","content":" send"}
+
+data: {"type":"text","content":" me"}
+
+data: {"type":"text","content":" the"}
+
+data: {"type":"text","content":" report"}
+
+data: {"type":"text","content":" tomorrow"}
+
+data: {"type":"text","content":"?"}
+
+data: {"type":"finish"}
+```
+
+## Error Responses
+
+<ResponseField name="400 Bad Request" type="error">
+  Returned when `messages` parameter is missing or invalid.
+  
+  ```json
+  "Missing messages"
+  ```
+</ResponseField>
+
+<ResponseField name="401 Unauthorized" type="error">
+  Returned when authentication fails.
+  
+  ```json
+  "Unauthorized"
+  ```
+</ResponseField>
+
+## Use Cases
+
+- **Grammar Correction**: Fix spelling and grammar errors inline
+- **Tone Adjustment**: Convert between professional, casual, and friendly tones
+- **Email Writing**: Transform quick notes into polished emails
+- **Text Expansion**: Add detail and context to brief text
+- **Text Condensing**: Shorten verbose text while preserving meaning
+- **Code Completion**: Complete or format code snippets
+- **Translation**: Translate and adapt text to different languages and styles
+- **Creative Writing**: Continue stories or creative content
+
+## Best Practices
+
+<Tip>
+- Let the system search memory automatically - it will personalize based on past interactions
+- Use `action` types for common transformations instead of custom prompts when possible
+- For email writing, the system will automatically include the user's signature if stored in memory
+- The endpoint learns from corrections, so user feedback improves future completions
+</Tip>

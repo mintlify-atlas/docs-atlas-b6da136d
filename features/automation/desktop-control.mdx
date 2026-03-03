@@ -1,0 +1,185 @@
+---
+title: Desktop Control
+description: System-wide automation capabilities powered by nut-js and node-window-manager
+---
+
+Tabby includes comprehensive desktop automation capabilities that enable system-level control and window management. These features power the invisible typing, text capture, and window focus restoration that make Tabby feel like a natural extension of your operating system.
+
+## Core Technologies
+
+Tabby's desktop automation is built on two powerful libraries:
+
+- **@nut-tree-fork/nut-js** - Cross-platform keyboard and mouse automation
+- **node-window-manager** - Window management and focus control
+
+## Window Management
+
+### Active Window Capture
+
+Tabby automatically captures the last active window before showing its interface, ensuring text is always pasted back to the correct application.
+
+```typescript
+// frontend/electron/src/services/text-handler.ts:15
+export async function captureLastActiveWindow(): Promise<void> {
+  const activeWindow = windowManager.getActiveWindow();
+  lastActiveWindowId = activeWindow?.id ?? null;
+}
+```
+
+### Focus Restoration
+
+After processing text or accepting suggestions, Tabby seamlessly returns focus to your original application:
+
+```typescript
+// frontend/electron/src/services/text-handler.ts:49
+async function restoreFocusToLastWindow(): Promise<boolean> {
+  if (lastActiveWindowId) {
+    const targetWindow = windowManager
+      .getWindows()
+      .find((w) => w.id === lastActiveWindowId);
+    
+    if (targetWindow) {
+      targetWindow.bringToTop();
+      return true;
+    }
+  }
+  return false;
+}
+```
+
+## Keyboard Automation
+
+### Text Capture
+
+Tabby can capture selected text from any application using programmatic keyboard control:
+
+<Steps>
+  <Step title="Release Modifier Keys">
+    Ensures no interfering key states from previous shortcuts
+  </Step>
+  
+  <Step title="Simulate Ctrl+C">
+    Programmatically copies selected text to clipboard
+  </Step>
+  
+  <Step title="Extract and Restore">
+    Reads the copied text and restores the original clipboard content
+  </Step>
+</Steps>
+
+```typescript
+// frontend/electron/src/services/text-handler.ts:25
+export async function captureSelectedText(): Promise<string> {
+  const original = clipboard.readText();
+  
+  // Release modifiers
+  await keyboard.releaseKey(Key.LeftAlt, Key.RightAlt, ...);
+  
+  // Copy selected text
+  await keyboard.pressKey(Key.LeftControl);
+  await keyboard.pressKey(Key.C);
+  await keyboard.releaseKey(Key.C);
+  await keyboard.releaseKey(Key.LeftControl);
+  
+  await new Promise(r => setTimeout(r, 150));
+  
+  const selected = clipboard.readText();
+  clipboard.writeText(original); // Restore
+  
+  return selected;
+}
+```
+
+### Standard Paste Mode
+
+The default output mode uses clipboard-based pasting:
+
+```typescript
+// frontend/electron/src/services/text-handler.ts:64
+export async function pasteToLastWindow(text: string): Promise<void> {
+  const originalClipboard = clipboard.readText();
+  
+  await restoreFocusToLastWindow();
+  
+  clipboard.writeText(text);
+  
+  // Simulate Ctrl+V
+  await keyboard.pressKey(Key.LeftControl);
+  await keyboard.pressKey(Key.V);
+  await keyboard.releaseKey(Key.V);
+  await keyboard.releaseKey(Key.LeftControl);
+  
+  clipboard.writeText(originalClipboard);
+}
+```
+
+<Note>
+  Standard paste mode is fast and reliable, but some applications (like online coding platforms) may detect automated clipboard operations.
+</Note>
+
+## Configuration
+
+Keyboard automation uses configurable timing to ensure compatibility across different applications:
+
+```typescript
+keyboard.config.autoDelayMs = 5; // Minimal delay between key events
+```
+
+## Global Shortcuts
+
+Tabby's automation powers these system-wide shortcuts:
+
+| Shortcut | Action | Implementation |
+|----------|--------|----------------|
+| `Ctrl+\` | Capture text & open menu | `captureLastActiveWindow()` + `captureSelectedText()` |
+| `Ctrl+Space` | Get AI suggestion | `captureSelectedText()` → AI → suggestion window |
+| `Shift+Tab` | Accept ghost text | `sendTextToLastWindow()` with selected mode |
+| `Shift+Escape` | Cancel typing | Immediately stops all automation |
+
+<Warning>
+  Desktop automation requires appropriate system permissions. On Windows, Tabby may need to run with administrator privileges to control certain protected applications.
+</Warning>
+
+## Text Output Modes
+
+Tabby supports multiple output modes that can be configured in settings:
+
+```typescript
+export type TextOutputMode = "paste" | "typewriter" | "typewriter-leetcode";
+
+export async function sendTextToLastWindow(
+  text: string,
+  mode: TextOutputMode = "paste"
+): Promise<void> {
+  if (mode === "typewriter") {
+    await typeSimpleToLastWindow(text);
+  } else if (mode === "typewriter-leetcode") {
+    await typeLeetCodeToLastWindow(text);
+  } else {
+    await pasteToLastWindow(text);
+  }
+}
+```
+
+See [Typewriter Mode](/features/automation/typewriter-mode) for details on undetectable character-by-character typing.
+
+## Emergency Stop
+
+Tabby includes a panic button to immediately stop all automation:
+
+```typescript
+let isTypingCancelled = false;
+
+export function cancelTyping(): void {
+  isTypingCancelled = true;
+  console.log("Typing cancelled by user");
+}
+```
+
+Press `Shift+Escape` at any time to cancel ongoing automation and hide all Tabby UI elements.
+
+## Related Features
+
+- [Typewriter Mode](/features/automation/typewriter-mode) - Undetectable character-by-character typing
+- [Windows MCP](/features/automation/windows-mcp) - Extended desktop control via MCP protocol
+- [Keyboard Shortcuts](/shortcuts/overview) - Complete shortcut reference

@@ -1,0 +1,355 @@
+---
+title: "Interview Copilot"
+description: "Analyze coding interview problems with structured solutions, test cases, and personalized mistake tracking"
+---
+
+## Overview
+
+The `/api/interview-copilot` endpoint provides comprehensive assistance for technical coding interviews. It analyzes coding problems (optionally from screenshots) and returns structured solutions with problem analysis, clean code implementations, walkthroughs, test cases, and personalized mistake tracking based on user history.
+
+<Note>
+This endpoint returns a structured JSON object (not plain text) via SSE streaming.
+</Note>
+
+## Endpoint
+
+```
+POST /api/interview-copilot
+```
+
+## Authentication
+
+Requires authentication via cookies or Authorization header.
+
+<Warning>
+Returns `401 Unauthorized` if authentication fails.
+</Warning>
+
+## Request Body
+
+<ParamField body="messages" type="UIMessage[]" required>
+  Array of conversation messages. The user message typically contains the coding problem description or question.
+  
+  ```typescript
+  interface UIMessage {
+    id: string
+    role: 'user' | 'assistant' | 'system'
+    content: string
+    parts?: any[]
+  }
+  ```
+</ParamField>
+
+<ParamField body="conversationId" type="string">
+  Optional conversation ID for persisting interview session history. If provided and the session doesn't exist, a new one will be created with type `"interview"`.
+</ParamField>
+
+<ParamField body="screenshot" type="string">
+  Optional base64-encoded screenshot of the coding problem. When provided, the AI will analyze the visual content along with the text message.
+  
+  <Info>
+  Useful for capturing LeetCode, HackerRank, or other coding platform problems directly from the screen.
+  </Info>
+</ParamField>
+
+## Response
+
+Returns a Server-Sent Events (SSE) stream containing a structured analysis object:
+
+<ResponseField name="idea" type="string">
+  Problem analysis in GitHub-flavored Markdown format, including:
+  - Key observations about the problem
+  - Pattern recognition (e.g., "This is a sliding window problem")
+  - Approach and strategy
+  - Time/Space complexity targets
+  - Edge cases to consider
+  
+  <Expandable title="Example format">
+    ```markdown
+    ## 💡 Problem Analysis
+    
+    ### Key Observations
+    - This is a two-pointer problem
+    - Array is sorted, which we can leverage
+    
+    ### Approach
+    1. Use left and right pointers
+    2. Move pointers based on sum comparison
+    
+    ### Edge Cases to Consider
+    - Empty array
+    - Single element
+    - Duplicate values
+    ```
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="code" type="string">
+  Clean, well-commented implementation code wrapped in triple backticks with language identifier.
+  
+  ```python
+  def twoSum(nums: List[int], target: int) -> List[int]:
+      # HashMap to store value -> index mapping
+      seen = {}
+      
+      for i, num in enumerate(nums):
+          complement = target - num
+          if complement in seen:
+              return [seen[complement], i]
+          seen[num] = i
+      
+      return []
+  ```
+</ResponseField>
+
+<ResponseField name="walkthrough" type="string">
+  Step-by-step explanation in Markdown with:
+  - Detailed walkthrough of the solution
+  - Complexity analysis table
+  - Visual examples if applicable
+  
+  <Expandable title="Example format">
+    ```markdown
+    ## 🚶 Step-by-Step Walkthrough
+    
+    ### Step 1: Initialization
+    Create a HashMap to store values we've seen...
+    
+    ### Step 2: Main Loop
+    For each element, calculate complement...
+    
+    ### Complexity Analysis
+    | Metric | Value | Explanation |
+    |--------|-------|-------------|
+    | Time   | O(n)  | Single pass through array |
+    | Space  | O(n)  | HashMap storage |
+    ```
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="testCases" type="array">
+  Array of test case objects with edge cases and validation inputs.
+  
+  ```typescript
+  Array<{
+    input: string,    // Test input
+    output: string,   // Expected output
+    reason: string    // Why this test case matters
+  }>
+  ```
+  
+  <Expandable title="Example">
+    ```json
+    [
+      {
+        "input": "[2,7,11,15], target=9",
+        "output": "[0,1]",
+        "reason": "Basic case - solution exists at beginning"
+      },
+      {
+        "input": "[3,3], target=6",
+        "output": "[0,1]",
+        "reason": "Edge case - duplicate values"
+      }
+    ]
+    ```
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="mistakes" type="array">
+  **Personalized** array of common mistakes based on the user's history. Retrieved from user's stored memories.
+  
+  ```typescript
+  Array<{
+    mistake: string,     // What the user commonly does wrong
+    correction: string,  // The correct approach
+    pattern: string      // Category of mistake
+  }>
+  ```
+  
+  <Expandable title="Example">
+    ```json
+    [
+      {
+        "mistake": "Forgetting to check for empty array before accessing elements",
+        "correction": "Always validate input: if (!nums || nums.length === 0) return []",
+        "pattern": "Edge Cases"
+      },
+      {
+        "mistake": "Using nested loops leading to O(n²) complexity",
+        "correction": "Use HashMap for O(n) lookup instead of nested iteration",
+        "pattern": "Time Complexity"
+      }
+    ]
+    ```
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="memories" type="array">
+  All relevant memories retrieved about the user during analysis.
+  
+  ```typescript
+  Array<{
+    memory: string,      // Memory content
+    createdAt: string    // ISO timestamp
+  }>
+  ```
+  
+  <Expandable title="Example">
+    ```json
+    [
+      {
+        "memory": "User prefers Python for coding interviews",
+        "createdAt": "2024-03-15T10:30:00Z"
+      },
+      {
+        "memory": "User struggles with dynamic programming problems",
+        "createdAt": "2024-03-14T14:20:00Z"
+      }
+    ]
+    ```
+  </Expandable>
+</ResponseField>
+
+## Available Tools
+
+The endpoint uses memory tools to personalize the analysis:
+
+<Expandable title="searchMemory">
+  Searches for:
+  - User's preferred programming language
+  - Coding style preferences
+  - Past mistakes and common errors
+  - Topics they struggle with
+  - Interview preparation context
+  
+  Uses memory type filtering (LONG_TERM, SHORT_TERM, EPISODIC, SEMANTIC, PROCEDURAL) for targeted searches.
+</Expandable>
+
+<Expandable title="addMemory">
+  Stores new insights like:
+  - User's preferred language if mentioned
+  - New coding patterns they learn
+  - Interview target companies
+  - Topics to focus on
+</Expandable>
+
+## Example Request
+
+```javascript
+const response = await fetch('/api/interview-copilot', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    messages: [
+      {
+        id: '1',
+        role: 'user',
+        content: 'Given an array of integers nums and an integer target, return indices of the two numbers that add up to target.'
+      }
+    ],
+    conversationId: 'interview_session_123'
+  })
+});
+
+// Parse SSE stream
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const chunk = decoder.decode(value);
+  const lines = chunk.split('\n');
+  
+  for (const line of lines) {
+    if (line.startsWith('data: ')) {
+      const data = JSON.parse(line.slice(6));
+      
+      if (data.type === 'text') {
+        // Parse the structured analysis object
+        const analysis = JSON.parse(data.content);
+        console.log(analysis.idea);      // Problem analysis
+        console.log(analysis.code);      // Solution code
+        console.log(analysis.testCases); // Test cases
+        console.log(analysis.mistakes);  // Personalized mistakes
+      }
+    }
+  }
+}
+```
+
+## Example with Screenshot
+
+```javascript
+// Capture screenshot and convert to base64
+const screenshot = await captureScreen(); // Your screenshot function
+const base64Image = btoa(screenshot);
+
+const response = await fetch('/api/interview-copilot', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    messages: [
+      {
+        id: '1',
+        role: 'user',
+        content: 'Analyze this LeetCode problem'
+      }
+    ],
+    screenshot: base64Image,
+    conversationId: 'interview_session_123'
+  })
+});
+```
+
+## Error Responses
+
+<ResponseField name="400 Bad Request" type="error">
+  Returned when `messages` parameter is missing or invalid.
+  
+  ```json
+  "Missing messages"
+  ```
+</ResponseField>
+
+<ResponseField name="401 Unauthorized" type="error">
+  Returned when authentication fails.
+  
+  ```json
+  "Unauthorized"
+  ```
+</ResponseField>
+
+## Features
+
+- **Visual Analysis**: Process screenshots of coding problems from any platform
+- **Structured Output**: Consistent JSON schema for easy parsing and display
+- **Personalized Mistakes**: Tracks and surfaces common errors from user history
+- **Memory Integration**: Remembers preferred languages, coding styles, and past struggles
+- **Beautiful Formatting**: All text fields use GitHub-flavored Markdown
+- **Conversation Persistence**: Saves full interview sessions with metadata
+- **Automatic Stopping**: Limits to 5 reasoning steps to ensure fast responses
+
+## Use Cases
+
+- **Live Interview Assistance**: Get real-time help during technical interviews
+- **LeetCode Practice**: Analyze and solve practice problems with personalized guidance
+- **Learning from Mistakes**: Track patterns in errors and improve over time
+- **Interview Preparation**: Study solutions with detailed explanations and complexity analysis
+- **Code Review**: Understand optimal approaches and edge cases for common problems
+
+## Best Practices
+
+<Tip>
+- Include screenshots when possible for more accurate problem analysis
+- Use conversationId to maintain interview session history
+- The system learns from your coding patterns - more usage means better personalization
+- Review the `mistakes` field to avoid repeating common errors
+- Check `memories` to see what the system knows about your preferences
+</Tip>

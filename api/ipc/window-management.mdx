@@ -1,0 +1,408 @@
+---
+title: "Window Management"
+description: "IPC methods for controlling application windows in Tabby AI Keyboard"
+---
+
+## Overview
+
+Window management IPC methods control the visibility, position, and behavior of various application windows including the main menu, settings panel, brain panel, and suggestion windows.
+
+## Window Control Methods
+
+### closeMenu
+
+Closes the main menu window.
+
+**Parameters:** None
+
+**Returns:** `void` (one-way message)
+
+**Implementation:** `frontend/electron/src/ipc/window-handlers.ts:35`
+
+<CodeGroup>
+```typescript Renderer Process
+// Close the menu window
+window.electron.closeMenu();
+```
+
+```typescript React Component
+function MenuPanel() {
+  const handleCancel = () => {
+    window.electron.closeMenu();
+  };
+
+  return (
+    <button onClick={handleCancel}>
+      Close
+    </button>
+  );
+}
+```
+</CodeGroup>
+
+#### Behavior
+
+Hides the main application window (`AppState.mainWindow`) from view. The window is not destroyed, only hidden, allowing it to be shown again quickly.
+
+---
+
+### resizeWindow
+
+Resizes the current window to the specified dimensions.
+
+<ParamField path="size" type="object" required>
+  Object containing optional width and height properties
+</ParamField>
+
+<ParamField path="size.width" type="number">
+  New window width in pixels (optional)
+</ParamField>
+
+<ParamField path="size.height" type="number">
+  New window height in pixels (optional)
+</ParamField>
+
+**Returns:** `void` (one-way message)
+
+**Implementation:** `frontend/electron/src/ipc/window-handlers.ts:39`
+
+<CodeGroup>
+```typescript Renderer Process
+// Resize to specific dimensions
+window.electron.resizeWindow({ width: 800, height: 600 });
+
+// Only change width
+window.electron.resizeWindow({ width: 1000 });
+
+// Only change height
+window.electron.resizeWindow({ height: 400 });
+```
+
+```typescript React Component
+function ResizablePanel() {
+  const handleResize = (expanded: boolean) => {
+    if (expanded) {
+      window.electron.resizeWindow({ width: 1200, height: 800 });
+    } else {
+      window.electron.resizeWindow({ width: 600, height: 400 });
+    }
+  };
+
+  return (
+    <button onClick={() => handleResize(true)}>
+      Expand
+    </button>
+  );
+}
+```
+</CodeGroup>
+
+#### Behavior
+
+Resizes the main window while preserving:
+- Current window position (x, y coordinates)
+- Unspecified dimensions (width or height if not provided)
+
+---
+
+### moveWindow
+
+Moves the window by a relative offset from its current position.
+
+<ParamField path="delta" type="object" required>
+  Object containing x and y offset values
+</ParamField>
+
+<ParamField path="delta.x" type="number" required>
+  Horizontal offset in pixels (positive = right, negative = left)
+</ParamField>
+
+<ParamField path="delta.y" type="number" required>
+  Vertical offset in pixels (positive = down, negative = up)
+</ParamField>
+
+**Returns:** `void` (one-way message)
+
+**Implementation:** `frontend/electron/src/ipc/window-handlers.ts:50`
+
+<CodeGroup>
+```typescript Renderer Process
+// Move window 100px to the right and 50px down
+window.electron.moveWindow({ x: 100, y: 50 });
+
+// Move window to the left and up
+window.electron.moveWindow({ x: -50, y: -30 });
+```
+
+```typescript React Component
+function DraggableWindow() {
+  const handleDrag = (deltaX: number, deltaY: number) => {
+    window.electron.moveWindow({ x: deltaX, y: deltaY });
+  };
+
+  return (
+    <div
+      onMouseMove={(e) => {
+        if (e.buttons === 1) { // Left mouse button
+          handleDrag(e.movementX, e.movementY);
+        }
+      }}
+    >
+      Drag to move
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+#### Behavior
+
+Moves the window relative to its current position while preserving:
+- Window dimensions (width and height)
+- Current window state (minimized, maximized, etc.)
+
+---
+
+### openSettings
+
+Opens the settings window.
+
+**Parameters:** None
+
+**Returns:** `void` (one-way message)
+
+**Implementation:** `frontend/electron/src/ipc/window-handlers.ts:27`
+
+<CodeGroup>
+```typescript Renderer Process
+// Open settings window
+window.electron.openSettings();
+```
+
+```typescript React Component
+function AppMenu() {
+  return (
+    <nav>
+      <button onClick={() => window.electron.openSettings()}>
+        Settings
+      </button>
+    </nav>
+  );
+}
+```
+</CodeGroup>
+
+#### Behavior
+
+Creates and displays a new settings window. If a settings window already exists, it will be brought to focus.
+
+---
+
+## Brain Panel Methods
+
+The brain panel is a utility window that displays captured context and memories.
+
+### toggleBrainPanel
+
+Toggles the brain panel window visibility.
+
+**Parameters:** None
+
+**Returns:** `void` (one-way message)
+
+**Implementation:** `frontend/electron/src/ipc/window-handlers.ts:7`
+
+<CodeGroup>
+```typescript Renderer Process
+// Toggle brain panel on/off
+window.electron.toggleBrainPanel();
+```
+
+```typescript React Component
+function BrainPanelToggle() {
+  const handleToggle = () => {
+    window.electron.toggleBrainPanel();
+  };
+
+  return (
+    <button onClick={handleToggle}>
+      Toggle Brain Panel
+    </button>
+  );
+}
+```
+</CodeGroup>
+
+#### Behavior
+
+- If the brain panel is visible, it will be hidden
+- If the brain panel is not visible, it will be created and shown
+- The panel appears in the top-right corner of the screen
+
+---
+
+### setBrainPanelCollapsed
+
+Sets the brain panel to collapsed or expanded state.
+
+<ParamField path="collapsed" type="boolean" required>
+  Whether the brain panel should be collapsed
+  - `true` - Collapse to 60x60px mini icon
+  - `false` - Expand to 320x400px full panel
+</ParamField>
+
+**Returns:** `void` (one-way message)
+
+**Implementation:** `frontend/electron/src/ipc/window-handlers.ts:16`
+
+<CodeGroup>
+```typescript Renderer Process
+// Collapse brain panel to icon
+window.electron.setBrainPanelCollapsed(true);
+
+// Expand brain panel to full size
+window.electron.setBrainPanelCollapsed(false);
+```
+
+```typescript React Component
+function BrainPanel() {
+  const [collapsed, setCollapsed] = useState(false);
+
+  const handleToggleSize = () => {
+    const newState = !collapsed;
+    setCollapsed(newState);
+    window.electron.setBrainPanelCollapsed(newState);
+  };
+
+  return (
+    <div>
+      <button onClick={handleToggleSize}>
+        {collapsed ? 'Expand' : 'Collapse'}
+      </button>
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+#### Dimensions
+
+**Collapsed:**
+- Size: 60x60 pixels
+- Position: 20px from top, 80px from right edge
+
+**Expanded:**
+- Size: 320x400 pixels  
+- Position: 20px from top, 340px from right edge
+
+---
+
+## External Navigation
+
+### openExternal
+
+Opens a URL in the system's default web browser.
+
+<ParamField path="url" type="string" required>
+  The URL to open in the default browser
+</ParamField>
+
+**Returns:** `void` (one-way message)
+
+**Implementation:** `frontend/electron/src/ipc/window-handlers.ts:31`
+
+<CodeGroup>
+```typescript Renderer Process
+// Open documentation in browser
+window.electron.openExternal("https://docs.tabbyml.com");
+```
+
+```typescript React Component
+function ExternalLink({ href, children }: { href: string; children: React.ReactNode }) {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.electron.openExternal(href);
+  };
+
+  return (
+    <a href={href} onClick={handleClick}>
+      {children}
+    </a>
+  );
+}
+
+// Usage
+<ExternalLink href="https://github.com/TabbyML/tabby">
+  View on GitHub
+</ExternalLink>
+```
+</CodeGroup>
+
+#### Security
+
+This method uses Electron's `shell.openExternal()` which:
+- Opens URLs in the system's default browser (not in Electron)
+- Respects system security settings
+- Shows security warnings for non-http(s) protocols
+
+---
+
+## Window Event Listeners
+
+### onMemoryStored
+
+Called when a new memory is captured and stored.
+
+<ParamField path="callback" type="(memory: string) => void" required>
+  Function to call when memory is stored
+  - `memory` - The captured memory text
+</ParamField>
+
+**Returns:** `() => void` - Cleanup function to remove the listener
+
+**Implementation:** `frontend/electron/src/preload.ts:35`
+
+```typescript
+useEffect(() => {
+  const cleanup = window.electron.onMemoryStored((memory: string) => {
+    console.log("New memory stored:", memory);
+    // Update UI to show new memory
+  });
+
+  return cleanup; // Remove listener on unmount
+}, []);
+```
+
+---
+
+### onCaptureStatusChanged
+
+Called when the context capture feature is enabled or disabled.
+
+<ParamField path="callback" type="(enabled: boolean) => void" required>
+  Function to call when capture status changes
+  - `enabled` - Whether context capture is now enabled
+</ParamField>
+
+**Returns:** `() => void` - Cleanup function to remove the listener
+
+**Implementation:** `frontend/electron/src/preload.ts:41`
+
+```typescript
+useEffect(() => {
+  const cleanup = window.electron.onCaptureStatusChanged((enabled: boolean) => {
+    console.log("Context capture is now:", enabled ? "ON" : "OFF");
+    // Update UI toggle state
+  });
+
+  return cleanup;
+}, []);
+```
+
+---
+
+## Related APIs
+
+- [Text Operations](/api/ipc/text-operations) - Insert and manipulate text
+- [Settings](/api/ipc/overview#settings-configuration) - Configure application behavior
+- [Context Capture](/api/ipc/overview#context-memory) - Manage context and memory

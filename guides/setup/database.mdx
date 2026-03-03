@@ -1,0 +1,156 @@
+---
+title: Database Setup
+description: Set up local Supabase database with Docker for Tabby AI Keyboard
+---
+
+Tabby uses a **local Supabase instance** running in Docker instead of the cloud service. This gives you full control over your data and eliminates cloud dependencies.
+
+## Prerequisites
+
+<Warning>
+  Docker Desktop must be running before you start Supabase
+</Warning>
+
+Make sure you have:
+- Docker Desktop installed and running
+- Completed the repository clone and dependency installation
+
+## Initial Setup
+
+<Steps>
+  <Step title="Initialize Supabase">
+    Run this command in your project root (only needed the first time):
+    
+    ```bash
+    npx supabase init
+    ```
+    
+    This creates the `supabase/` directory with configuration files.
+  </Step>
+  
+  <Step title="Start local Supabase">
+    ```bash
+    npx supabase start
+    ```
+    
+    <Info>
+      The first run will pull approximately 13 Docker images, which takes a few minutes. Subsequent starts take only ~10 seconds.
+    </Info>
+    
+    When completed, the command prints all credentials including:
+    - **API URL** (typically `http://127.0.0.1:54321`)
+    - **anon key**
+    - **service_role key**
+    
+    <Note>
+      Save these credentials - you'll need them for environment configuration
+    </Note>
+  </Step>
+  
+  <Step title="Verify database schema">
+    The database schema is automatically applied from `supabase/migrations/` when you start Supabase.
+    
+    You can verify the setup by visiting the Supabase Studio at:
+    ```
+    http://localhost:54323
+    ```
+  </Step>
+</Steps>
+
+## Create Storage Buckets
+
+Tabby requires two storage buckets for file uploads and context captures.
+
+### Option 1: Using PowerShell (Windows)
+
+```powershell
+# Replace <SERVICE_ROLE_KEY> with the key from `npx supabase status`
+$headers = @{
+  "apikey" = "<SERVICE_ROLE_KEY>"
+  "Authorization" = "Bearer <SERVICE_ROLE_KEY>"
+  "Content-Type" = "application/json"
+}
+
+# Create context-captures bucket
+Invoke-RestMethod -Uri "http://127.0.0.1:54321/storage/v1/bucket" -Method Post -Headers $headers -Body '{"id":"context-captures","name":"context-captures","public":true}'
+
+# Create project-assets bucket
+Invoke-RestMethod -Uri "http://127.0.0.1:54321/storage/v1/bucket" -Method Post -Headers $headers -Body '{"id":"project-assets","name":"project-assets","public":true}'
+```
+
+### Option 2: Using curl (macOS/Linux)
+
+```bash
+# Replace <SERVICE_ROLE_KEY> with the key from `npx supabase status`
+SERVICE_ROLE_KEY="<SERVICE_ROLE_KEY>"
+
+# Create context-captures bucket
+curl -X POST "http://127.0.0.1:54321/storage/v1/bucket" \
+  -H "apikey: $SERVICE_ROLE_KEY" \
+  -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"context-captures","name":"context-captures","public":true}'
+
+# Create project-assets bucket
+curl -X POST "http://127.0.0.1:54321/storage/v1/bucket" \
+  -H "apikey: $SERVICE_ROLE_KEY" \
+  -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"project-assets","name":"project-assets","public":true}'
+```
+
+### Option 3: Using Supabase Studio (Manual)
+
+1. Open Supabase Studio at `http://localhost:54323`
+2. Navigate to **Storage** in the left sidebar
+3. Click **New bucket**
+4. Create a bucket named `context-captures` (set to public)
+5. Create another bucket named `project-assets` (set to public)
+
+## Database Schema
+
+The database includes tables for:
+
+- **conversations** - Stores chat conversations with metadata
+- **messages** - Individual messages within conversations
+- Custom functions for SQL execution and timestamp updates
+
+All schema migrations are automatically applied from `supabase/migrations/20240101000000_init.sql`.
+
+## Quick Reference
+
+Common Supabase commands:
+
+| Action | Command |
+| --- | --- |
+| Start | `npx supabase start` |
+| Stop | `npx supabase stop` |
+| Status | `npx supabase status` |
+| Admin UI | `http://localhost:54323` |
+| Reset DB | `npx supabase db reset` |
+
+<Warning>
+  Docker Desktop must be running before executing `npx supabase start`
+</Warning>
+
+## Troubleshooting
+
+### Docker not running
+If you see connection errors, make sure Docker Desktop is running and fully initialized.
+
+### Port conflicts
+If ports 54321 or 54323 are already in use, stop other services or configure different ports in `supabase/config.toml`.
+
+### Reset database
+To start fresh with a clean database:
+```bash
+npx supabase db reset
+```
+
+## Next Steps
+
+After setting up the database:
+
+1. Note your API URL, anon key, and service_role key from `npx supabase status`
+2. [Configure environment variables](/guides/setup/environment) with these credentials
+3. Optionally set up [Neo4j knowledge graph](/guides/setup/neo4j)

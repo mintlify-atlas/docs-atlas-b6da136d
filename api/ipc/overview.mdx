@@ -1,0 +1,146 @@
+---
+title: "IPC Communication Overview"
+description: "Overview of Electron IPC communication architecture in Tabby AI Keyboard"
+---
+
+## Introduction
+
+Tabby AI Keyboard uses Electron's IPC (Inter-Process Communication) system to enable secure communication between the renderer process (UI) and the main process (system operations). The IPC layer is exposed through the `window.electron` API via the context bridge.
+
+## Architecture
+
+The IPC architecture consists of three main components:
+
+1. **Preload Script** (`preload.ts`) - Exposes safe IPC methods to the renderer process
+2. **IPC Handlers** (`/ipc/*-handlers.ts`) - Registers listeners in the main process
+3. **Services** (`/services/`) - Implements the actual business logic
+
+## Communication Patterns
+
+### One-Way Messages (send)
+
+One-way messages are fire-and-forget operations that don't return a value:
+
+```typescript
+// Renderer process
+window.electron.replaceText("Hello, world!");
+window.electron.closeMenu();
+```
+
+### Request-Response (invoke)
+
+Request-response operations return a Promise with the result:
+
+```typescript
+// Renderer process
+const mode = await window.electron.getSuggestionMode();
+const userId = await window.electron.getUserId();
+```
+
+### Event Listeners (on)
+
+Event listeners allow the main process to push updates to the renderer:
+
+```typescript
+// Renderer process
+const cleanup = window.electron.onShowMenu((text: string) => {
+  console.log("Menu shown with text:", text);
+});
+
+// Cleanup when component unmounts
+cleanup();
+```
+
+## IPC Method Categories
+
+The IPC methods are organized into several functional groups:
+
+### Text Operations
+
+Methods for text manipulation and insertion:
+- `replaceText()` - Replace selected text
+- `acceptSuggestion()` - Accept AI suggestion
+- `dismissSuggestion()` - Dismiss current suggestion
+
+See [Text Operations](/api/ipc/text-operations) for details.
+
+### Window Management
+
+Methods for controlling application windows:
+- `closeMenu()` - Close menu window
+- `resizeWindow()` - Resize window dimensions
+- `moveWindow()` - Move window position
+- `openSettings()` - Open settings window
+- `toggleBrainPanel()` - Toggle brain panel visibility
+
+See [Window Management](/api/ipc/window-management) for details.
+
+### Settings & Configuration
+
+Methods for managing application settings:
+- `getSuggestionMode()` / `setSuggestionMode()` - Suggestion trigger mode
+- `getTextOutputMode()` / `setTextOutputMode()` - Text output method
+- `getGhostTextEnabled()` / `setGhostTextEnabled()` - Ghost text overlay
+- `getContentProtectionEnabled()` / `setContentProtectionEnabled()` - Screen capture protection
+
+### Context & Memory
+
+Methods for context capture and memory management:
+- `getContextCaptureEnabled()` / `setContextCaptureEnabled()` - Context capture toggle
+- `captureScreen()` - Capture screenshot
+- `getCachedMemories()` / `setCachedMemories()` - Memory cache
+
+### Voice & Transcription
+
+Methods for voice agent and transcription features:
+- `onVoiceAgentStart()` / `onVoiceAgentStop()` - Voice agent events
+- `onTranscribeStart()` / `onTranscribeStop()` - Transcription events
+- `sendTranscribeAudio()` - Send audio data for transcription
+
+## Security Considerations
+
+### Context Isolation
+
+All IPC methods are exposed through Electron's `contextBridge.exposeInMainWorld()`, which ensures:
+- Complete isolation between renderer and main processes
+- No direct access to Node.js or Electron APIs from renderer
+- Type-safe communication with TypeScript
+
+### Input Validation
+
+IPC handlers validate all incoming data:
+- Type checking on parameters
+- Bounds checking for numeric values
+- Sanitization of string inputs
+
+## TypeScript Types
+
+The IPC API is fully typed. Access types through the global `window.electron` object:
+
+```typescript
+// TypeScript automatically infers types
+const mode: "hotkey" | "auto" = await window.electron.getSuggestionMode();
+
+// Callback parameters are typed
+window.electron.onShowSuggestion((data: { context: string }) => {
+  console.log(data.context);
+});
+```
+
+## Error Handling
+
+IPC operations may fail due to various reasons. Always handle errors appropriately:
+
+```typescript
+try {
+  await window.electron.captureScreen();
+} catch (error) {
+  console.error("Failed to capture screen:", error);
+}
+```
+
+## Source Code References
+
+- Preload API: `frontend/electron/src/preload.ts`
+- IPC Handlers: `frontend/electron/src/ipc/`
+- Services: `frontend/electron/src/services/`

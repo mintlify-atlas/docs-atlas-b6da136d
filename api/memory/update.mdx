@@ -1,0 +1,130 @@
+---
+title: Update Memory
+description: Update an existing memory's content
+---
+
+## PUT /memory/update
+
+Update an existing memory's content. This endpoint allows you to modify the stored information for a specific memory while preserving its ID and metadata.
+
+### Request Body
+
+<ParamField body="memory_id" type="string" required>
+  The unique identifier of the memory to update.
+</ParamField>
+
+<ParamField body="data" type="string" required>
+  The new content for the memory. This will replace the existing memory content.
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates whether the operation was successful.
+</ResponseField>
+
+<ResponseField name="result" type="object">
+  The result from mem0 containing update confirmation and metadata.
+  
+  <Expandable title="Result Object">
+    <ResponseField name="message" type="string">
+      Confirmation message about the update.
+    </ResponseField>
+    
+    <ResponseField name="memory_id" type="string">
+      The ID of the updated memory.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X PUT http://localhost:8000/memory/update \
+  -H "Content-Type: application/json" \
+  -d '{
+    "memory_id": "mem_abc123",
+    "data": "User prefers dark mode and high contrast themes"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "result": {
+    "message": "Memory updated successfully",
+    "memory_id": "mem_abc123"
+  }
+}
+```
+
+### Updating Memory Type
+
+<Note>
+  The `PUT /memory/update` endpoint only updates the memory content (data field). Memory type and other metadata cannot be updated through this endpoint. To change metadata, you need to delete the memory and create a new one with the desired metadata.
+</Note>
+
+### Use Cases
+
+**Correcting Information**
+
+Update a memory when you realize the stored information is incorrect:
+
+```bash
+curl -X PUT http://localhost:8000/memory/update \
+  -H "Content-Type: application/json" \
+  -d '{
+    "memory_id": "mem_xyz789",
+    "data": "User is a senior software engineer, not junior"
+  }'
+```
+
+**Refining Details**
+
+Add more specific information to an existing memory:
+
+```bash
+curl -X PUT http://localhost:8000/memory/update \
+  -H "Content-Type: application/json" \
+  -d '{
+    "memory_id": "mem_def456",
+    "data": "User likes TypeScript and prefers strict type checking enabled"
+  }'
+```
+
+### Error Responses
+
+<ResponseField name="detail" type="string">
+  Error message describing what went wrong.
+</ResponseField>
+
+**500 Internal Server Error**
+
+```json
+{
+  "detail": "Memory not found or update failed"
+}
+```
+
+**Common Error Scenarios**
+
+1. **Invalid Memory ID**: The provided `memory_id` doesn't exist
+2. **Empty Data**: The `data` field cannot be empty
+3. **Database Connection**: Failure to connect to the vector store
+
+### Memory History
+
+Mem0 maintains a history of memory changes. To view the history of updates for a memory, use the history endpoint:
+
+```bash
+curl http://localhost:8000/memory/history/mem_abc123
+```
+
+### Implementation Details
+
+- **Source:** `backend/main.py:320`
+- **Vector Update:** The update triggers re-embedding of the new content
+- **Metadata Preservation:** Existing metadata (including memory_type) is preserved
+- **Atomic Operation:** Updates are atomic to prevent partial modifications

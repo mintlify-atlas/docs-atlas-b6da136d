@@ -1,0 +1,498 @@
+---
+title: "Text Transformations"
+description: "Built-in AI actions for grammar fixes, tone changes, text expansion, and more"
+---
+
+## Overview
+
+Text Transformations are single-shot AI actions that instantly modify your selected text. From fixing grammar to changing tone to writing complete emails, each action is optimized for a specific use case.
+
+<Info>
+  All transformations work system-wide across any application - code editors, browsers, messaging apps, and more.
+</Info>
+
+## Built-in Actions
+
+### Grammar & Spelling
+
+#### Fix Grammar (`Alt+F`)
+
+Corrects all grammar, spelling, and punctuation errors while maintaining the original tone and style.
+
+<CodeGroup>
+```typescript frontend/src/lib/ai/actions-store.ts
+{
+  id: "fix-grammar",
+  label: "Fix Grammar",
+  icon: "✍️",
+  shortcut: "F",
+  prompt: `You are a grammar and spelling expert.
+    Fix all grammar, spelling, and punctuation errors in the text.
+    Maintain the original tone and style.
+    Return ONLY the corrected text, no explanations.`
+}
+```
+</CodeGroup>
+
+**Use cases:**
+- Proofreading emails before sending
+- Cleaning up quick messages
+- Polishing documentation
+
+**Example:**
+
+<CodeGroup>
+```text Before
+their going too the store tomorrow and there bringing there friends
+```
+
+```text After (Alt+F)
+They're going to the store tomorrow and they're bringing their friends.
+```
+</CodeGroup>
+
+### Length Adjustments
+
+#### Shorten Text (`Alt+S`)
+
+Condenses text while preserving all key information. Removes redundancy and filler words.
+
+<CodeGroup>
+```typescript frontend/src/lib/ai/actions-store.ts
+{
+  id: "shorten",
+  label: "Shorten Text",
+  icon: "✂️",
+  shortcut: "S",
+  prompt: `You are a concise writing expert.
+    Condense the text while preserving all key information.
+    Remove redundancy and filler words.
+    Return ONLY the shortened text, no explanations.`
+}
+```
+</CodeGroup>
+
+**Example:**
+
+<CodeGroup>
+```text Before (120 words)
+I wanted to reach out and touch base with you regarding the meeting
+that we had scheduled for next week. I was thinking that it might be
+a good idea if we could possibly reschedule it to a different time
+that works better for both of us, as I have a conflict with another
+commitment that came up unexpectedly.
+```
+
+```text After (Alt+S) (32 words)
+Can we reschedule next week's meeting? I have an unexpected conflict.
+Let me know what time works for you.
+```
+</CodeGroup>
+
+#### Make Longer (`Alt+E`)
+
+Expands text with relevant details, examples, and context while maintaining the original tone.
+
+<CodeGroup>
+```typescript frontend/src/lib/ai/actions-store.ts
+{
+  id: "expand",
+  label: "Make Longer",
+  icon: "📝",
+  shortcut: "E",
+  prompt: `You are a content writer.
+    Expand the text with relevant details, examples, and context.
+    Maintain the original tone and message.
+    Return ONLY the expanded text, no explanations.`
+}
+```
+</CodeGroup>
+
+**Example:**
+
+<CodeGroup>
+```text Before (15 words)
+The AI keyboard helps with coding interviews by providing real-time assistance.
+```
+
+```text After (Alt+E) (65 words)
+The AI keyboard helps with coding interviews by providing real-time assistance
+throughout the entire process. It captures your screen to understand the problem,
+analyzes the requirements, and offers intelligent suggestions for approaches,
+code implementations, and edge cases. This allows you to focus on problem-solving
+while the AI handles research, boilerplate, and optimization suggestions in the
+background.
+```
+</CodeGroup>
+
+### Tone Adjustments
+
+#### Professional Tone (`Alt+P`)
+
+Rewrites text in a formal, professional tone suitable for business communications.
+
+<CodeGroup>
+```typescript frontend/src/lib/ai/actions-store.ts
+{
+  id: "professional-tone",
+  label: "Professional Tone",
+  icon: "💼",
+  shortcut: "P",
+  prompt: `You are a business writing expert.
+    Rewrite the text in a formal, professional tone.
+    Suitable for business emails and documents.
+    Return ONLY the rewritten text, no explanations.`
+}
+```
+</CodeGroup>
+
+**Example:**
+
+<CodeGroup>
+```text Before
+Hey! Just wanted to let you know the project's gonna be late.
+Had some issues with the code.
+```
+
+```text After (Alt+P)
+Dear [Name],
+
+I am writing to inform you that the project timeline will need to be
+adjusted. We have encountered some technical challenges that require
+additional time to resolve properly. I will provide you with an updated
+delivery estimate by end of day.
+
+Best regards
+```
+</CodeGroup>
+
+#### Casual Tone (`Alt+C`)
+
+Rewrites text in a relaxed, informal tone for friendly conversations.
+
+<CodeGroup>
+```typescript frontend/src/lib/ai/actions-store.ts
+{
+  id: "casual-tone",
+  label: "Casual Tone",
+  icon: "😊",
+  shortcut: "C",
+  prompt: `You are a casual writing expert.
+    Rewrite the text in a relaxed, informal tone.
+    Keep it friendly and conversational.
+    Return ONLY the rewritten text, no explanations.`
+}
+```
+</CodeGroup>
+
+**Example:**
+
+<CodeGroup>
+```text Before
+I would like to formally request your assistance with reviewing
+the documentation before the deadline.
+```
+
+```text After (Alt+C)
+Hey! Could you help me out and review the docs before the deadline?
+Would really appreciate it!
+```
+</CodeGroup>
+
+#### Friendly Tone (`Alt+Y`)
+
+Adds warmth and approachability while keeping the message clear.
+
+<CodeGroup>
+```typescript frontend/src/lib/ai/actions-store.ts
+{
+  id: "friendly-tone",
+  label: "Friendly Tone",
+  icon: "🤝",
+  shortcut: "Y",
+  prompt: `You are a warm communication expert.
+    Rewrite the text in a friendly, approachable tone.
+    Add warmth while keeping the message clear.
+    Return ONLY the rewritten text, no explanations.`
+}
+```
+</CodeGroup>
+
+### Email Writing
+
+#### Write Email (`Alt+M`)
+
+Transforms bullet points or rough notes into a well-structured email with greeting and sign-off.
+
+<CodeGroup>
+```typescript frontend/src/lib/ai/actions-store.ts
+{
+  id: "email-writer",
+  label: "Write Email",
+  icon: "📧",
+  shortcut: "M",
+  prompt: `You are an email writing expert.
+    Transform the text into a well-structured email.
+    Add appropriate greeting and sign-off.
+    Format professionally.
+    Return ONLY the email text, no explanations.`
+}
+```
+</CodeGroup>
+
+**Example:**
+
+<CodeGroup>
+```text Before
+- Need to reschedule meeting
+- Conflict on Tuesday
+- Prefer Wednesday or Thursday
+- Morning works best
+```
+
+```text After (Alt+M)
+Subject: Request to Reschedule Tuesday's Meeting
+
+Hi [Name],
+
+I hope this message finds you well. I'm reaching out to see if we could
+reschedule our meeting currently planned for Tuesday. Unfortunately,
+I have a scheduling conflict that day.
+
+Would Wednesday or Thursday work for you instead? I'm generally available
+in the mornings and can adjust to your preferred time.
+
+Thank you for your flexibility, and I apologize for any inconvenience.
+
+Best regards,
+[Your Name]
+```
+</CodeGroup>
+
+### Custom Prompts
+
+#### Custom Prompt (`Alt+K`)
+
+Define your own transformation with a custom instruction.
+
+**How to use:**
+
+1. Select text and press `Ctrl+\`
+2. Choose **Custom Prompt** or press `Alt+K`
+3. Enter your instruction (e.g., "Make this sound more confident")
+4. Press `Enter` to apply
+
+**Example custom prompts:**
+
+- "Translate to Spanish"
+- "Add more technical details"
+- "Make this suitable for a LinkedIn post"
+- "Convert to bullet points"
+- "Explain like I'm five"
+
+<Tip>
+  Your custom prompts are saved locally and can be reused. Great for repetitive transformations!
+</Tip>
+
+## How Actions Work
+
+All actions follow the same pipeline:
+
+<Steps>
+  <Step title="Select Text">
+    Highlight the text you want to transform in any application.
+  </Step>
+  
+  <Step title="Open Action Menu">
+    Press `Ctrl+\` to open the Action Menu or use a direct shortcut like `Alt+F`.
+  </Step>
+  
+  <Step title="AI Processing">
+    The selected text is sent to the completion API with the action's prompt.
+  </Step>
+  
+  <Step title="View Result">
+    The transformed text appears in the Result Panel with options to copy or paste.
+  </Step>
+  
+  <Step title="Apply">
+    Press `Enter` to paste the result back, replacing your original selection.
+  </Step>
+</Steps>
+
+## Action Execution Flow
+
+<CodeGroup>
+```typescript frontend/src/components/action-menu/action-menu.tsx
+const handleActionSelect = useCallback(
+  async (action: Action) => {
+    // Set the current action
+    setCurrentAction(action);
+    setMessages([]);
+
+    // Get the action's prompt
+    const prompt = getActionPrompt(action);
+    
+    // Send to completion API
+    sendMessage(
+      {
+        parts: [{ type: "text", text: selectedText }]
+      },
+      {
+        body: {
+          action: action.id as ActionType,
+          customPrompt: prompt
+        },
+      }
+    );
+  },
+  [sendMessage, selectedText, setMessages]
+);
+```
+</CodeGroup>
+
+The completion API processes the request:
+
+<CodeGroup>
+```typescript nextjs-backend/src/app/api/completion/route.ts
+export async function POST(req: Request) {
+  const { messages, action, customPrompt, userId } = await req.json();
+
+  // Use custom prompt if provided, otherwise use system prompt
+  const systemPrompt = customPrompt
+    ? `${customPrompt}\n\n${getSystemPrompt(userId)}`
+    : getSystemPrompt(userId);
+
+  // Stream the transformation
+  const result = streamText({
+    model: myProvider.languageModel(defaultModel),
+    system: systemPrompt,
+    messages: modelMessages,
+    tools: {
+      tavilySearchTool,      // Web search if needed
+      addMemory,             // Store user preferences
+      searchMemory,          // Retrieve context
+    },
+  });
+
+  return new Response(result.toUIMessageStream());
+}
+```
+</CodeGroup>
+
+## Memory Integration
+
+All transformations can leverage the memory system:
+
+- **Search memory** before transformation for personalized output
+- **Store preferences** when user accepts/rejects suggestions
+- **Learn writing style** from user's edits and corrections
+
+<Info>
+  The more you use transformations, the more they adapt to your style. The AI learns your preferences for tone, length, and formatting.
+</Info>
+
+## Creating Custom Actions
+
+You can define your own reusable actions in the settings:
+
+1. Open Settings from the Action Menu toolbar
+2. Go to the **Actions** tab
+3. Click **Add Action**
+4. Define:
+   - **Label** - Display name
+   - **Icon** - Emoji or icon
+   - **Shortcut** - Single key (e.g., "Q")
+   - **Prompt** - Transformation instruction
+   - **Group** - "action" or "agent"
+
+**Example custom action:**
+
+```json
+{
+  "id": "code-review",
+  "label": "Review Code",
+  "icon": "🔍",
+  "shortcut": "R",
+  "prompt": "You are a code review expert. Analyze the code for bugs, performance issues, and best practices. Provide specific, actionable feedback. Return ONLY the review, no explanations.",
+  "group": "action"
+}
+```
+
+<Warning>
+  Keyboard shortcuts must be unique. The system will warn you if a shortcut is already in use.
+</Warning>
+
+## Action Management
+
+Actions are stored locally and persist across sessions:
+
+<CodeGroup>
+```typescript frontend/src/lib/ai/actions-store.ts
+// Load actions from localStorage
+export function loadActions(): Action[] {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    const parsed: Action[] = JSON.parse(saved);
+    // Merge with any new default actions
+    return [...parsed, ...missingDefaults];
+  }
+  return getDefaultActions();
+}
+
+// Save custom actions
+export function saveActions(actions: Action[]): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(actions));
+}
+
+// Reset to defaults
+export function resetToDefaults(): Action[] {
+  const defaults = getDefaultActions();
+  saveActions(defaults);
+  return defaults;
+}
+```
+</CodeGroup>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep prompts specific">
+    More specific prompts yield better results. Instead of "improve this", try "make this more concise while maintaining technical accuracy".
+  </Accordion>
+  
+  <Accordion title="Use shortcuts for common actions">
+    Memorize shortcuts for your most-used actions (e.g., `Alt+F` for grammar). This saves time over opening the menu.
+  </Accordion>
+  
+  <Accordion title="Combine actions">
+    Chain transformations: first shorten text with `Alt+S`, then make it professional with `Alt+P`.
+  </Accordion>
+  
+  <Accordion title="Teach the AI your style">
+    The memory system learns from your edits. If you modify the AI's output, it will adapt future suggestions.
+  </Accordion>
+</AccordionGroup>
+
+## Keyboard Shortcuts Reference
+
+| Shortcut | Action             | Description                        |
+| -------- | ------------------ | ---------------------------------- |
+| `Alt+F`  | Fix Grammar        | Correct spelling and grammar       |
+| `Alt+S`  | Shorten Text       | Condense while keeping key info    |
+| `Alt+E`  | Make Longer        | Expand with details and examples   |
+| `Alt+P`  | Professional Tone  | Formal business writing            |
+| `Alt+C`  | Casual Tone        | Relaxed, informal style            |
+| `Alt+Y`  | Friendly Tone      | Warm and approachable              |
+| `Alt+M`  | Write Email        | Transform to structured email      |
+| `Alt+K`  | Custom Prompt      | Define your own transformation     |
+| `Alt+H`  | Chat Mode          | Free-form AI conversation          |
+| `Alt+I`  | Interview Copilot  | Coding interview assistant         |
+| `Alt+T`  | Text Agent         | Quick text tools                   |
+| `Alt+V`  | Voice Agent        | Voice conversation                 |
+
+## See Also
+
+- [Action Menu](/features/ai-assistance/action-menu) - How to access and use transformations
+- [AI Suggestions](/features/ai-assistance/suggestions) - Context-aware autocomplete
+- [Keyboard Shortcuts](/shortcuts/overview) - Complete shortcut reference

@@ -1,0 +1,274 @@
+---
+title: Automated GitHub Releases
+description: Set up and trigger automated Windows app releases using GitHub Actions
+---
+
+Tabby AI Keyboard uses GitHub Actions to automatically build and release Windows installers. This guide explains how the release workflow functions and how to trigger new releases.
+
+## Release Workflow Overview
+
+The release workflow is defined in `.github/workflows/release.yml:1-46` and automatically:
+
+1. Builds the Windows application on a Windows runner
+2. Creates a production `.exe` installer
+3. Publishes a draft GitHub Release
+4. Attaches the installer to the release
+
+## Prerequisites
+
+<Steps>
+
+<Step title="Configure GitHub Secrets">
+Add these secrets to your GitHub repository settings (**Settings** → **Secrets and variables** → **Actions**):
+
+| Secret Name | Description |
+|------------|-------------|
+| `GH_TOKEN` | GitHub Personal Access Token (classic) with `repo` scope |
+| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase anonymous key |
+| `NEXT_PUBLIC_APP_NAME` | Application display name |
+| `NEXT_PUBLIC_APP_ICON` | Application icon path |
+| `NEXT_PUBLIC_API_URL` | Backend API URL |
+| `NEXT_PUBLIC_MEMORY_API_URL` | Memory service API URL |
+
+<Warning>
+Ensure your `GH_TOKEN` has the `repo` scope enabled. This is required for creating releases and uploading assets.
+</Warning>
+</Step>
+
+<Step title="Verify package.json version">
+Update the version in `frontend/package.json`:
+
+```json
+{
+  "name": "tabby",
+  "version": "0.1.1",
+  // ...
+}
+```
+
+The version number will be used for the Git tag and release name.
+</Step>
+
+</Steps>
+
+## Triggering a Release
+
+### Method 1: Using npm script (Recommended)
+
+<Steps>
+
+<Step title="Navigate to frontend directory">
+```bash
+cd frontend
+```
+</Step>
+
+<Step title="Run the release command">
+```bash
+pnpm run release
+```
+
+Or with npm:
+
+```bash
+npm run release
+```
+
+This script (`package.json:30`):
+- Reads the version from `package.json`
+- Creates a Git tag (e.g., `v0.1.1`)
+- Pushes the tag to GitHub
+- Triggers the GitHub Actions workflow
+</Step>
+
+</Steps>
+
+### Method 2: Manual Git commands
+
+Alternatively, you can create and push tags manually:
+
+<CodeGroup>
+```bash Create tag
+# Create a tag matching the version
+git tag v0.1.1
+```
+
+```bash Push tag
+# Push the tag to origin
+git push origin v0.1.1
+```
+
+```bash Push all tags
+# Or push all tags at once
+git push origin --tags
+```
+</CodeGroup>
+
+### Method 3: Manual workflow dispatch
+
+You can also trigger the workflow manually from GitHub:
+
+1. Go to **Actions** tab in your repository
+2. Select **Release** workflow
+3. Click **Run workflow**
+4. Select the branch and click **Run workflow**
+
+<Note>
+Manual dispatch is useful for re-running failed builds or testing the workflow.
+</Note>
+
+## Release Workflow Details
+
+The workflow runs on `windows-latest` and executes the following steps:
+
+<Steps>
+
+<Step title="Checkout code">
+Clones the repository at the tagged commit:
+
+```yaml
+- name: Checkout
+  uses: actions/checkout@v4
+```
+</Step>
+
+<Step title="Setup build environment">
+Installs pnpm 9 and Node.js 20 with dependency caching:
+
+```yaml
+- name: Install pnpm
+  uses: pnpm/action-setup@v4
+  with:
+    version: 9
+
+- name: Install Node.js
+  uses: actions/setup-node@v4
+  with:
+    node-version: 20
+    cache: "pnpm"
+    cache-dependency-path: frontend/pnpm-lock.yaml
+```
+</Step>
+
+<Step title="Install dependencies">
+```yaml
+- name: Install dependencies
+  run: |
+    cd frontend
+    pnpm install
+```
+</Step>
+
+<Step title="Build and publish">
+Builds the application and creates the GitHub Release:
+
+```yaml
+- name: Build and Publish
+  run: |
+    cd frontend
+    pnpm run dist
+  env:
+    GH_TOKEN: ${{ secrets.GH_TOKEN }}
+    # ... environment variables
+```
+
+The `electron-builder` configuration (`package.json:141-147`) automatically publishes to GitHub:
+
+```json
+"publish": [
+  {
+    "provider": "github",
+    "owner": "CubeStar1",
+    "repo": "ai-keyboard",
+    "releaseType": "draft"
+  }
+]
+```
+</Step>
+
+</Steps>
+
+## Release Artifacts
+
+After the workflow completes successfully:
+
+1. A **draft release** is created at `https://github.com/YOUR-USERNAME/YOUR-REPO/releases`
+2. The Windows installer (`.exe`) is automatically attached
+3. The release name follows the format: `v${version}` (e.g., `v0.1.1`)
+
+<Note>
+Releases are created as **drafts** by default. You'll need to manually publish them from the GitHub Releases page after reviewing.
+</Note>
+
+## Workflow Triggers
+
+The release workflow triggers on:
+
+```yaml
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+```
+
+- **Tag push**: Any tag starting with `v` (e.g., `v0.1.0`, `v1.2.3-beta`)
+- **Manual dispatch**: Can be triggered manually from GitHub Actions UI
+
+## Best Practices
+
+### Versioning Strategy
+
+Follow semantic versioning:
+
+- **Major** (v1.0.0): Breaking changes
+- **Minor** (v0.1.0): New features, backwards compatible
+- **Patch** (v0.0.1): Bug fixes
+
+### Pre-release Tags
+
+For beta or alpha releases:
+
+```bash
+git tag v0.2.0-beta.1
+git push origin v0.2.0-beta.1
+```
+
+### Testing Before Release
+
+1. Test the local build first:
+   ```bash
+   cd frontend
+   pnpm run dist
+   ```
+
+2. Verify the installer works on a clean Windows system
+
+3. Only then trigger the GitHub release
+
+<Warning>
+Once a release is published, avoid deleting tags or releases. If you need to fix issues, increment the version and create a new release.
+</Warning>
+
+## Troubleshooting
+
+### Workflow Fails at Build Step
+
+- Check that all GitHub Secrets are configured correctly
+- Review the workflow logs for specific error messages
+- Ensure the version in `package.json` is valid
+
+### Release Not Created
+
+- Verify `GH_TOKEN` has `repo` scope
+- Check that the tag format matches `v*` pattern
+- Ensure electron-builder publish configuration is correct
+
+### Multiple Releases for Same Tag
+
+If you push the same tag multiple times:
+
+1. Delete the existing release from GitHub
+2. Delete the tag: `git tag -d v0.1.0 && git push origin :refs/tags/v0.1.0`
+3. Create a new tag with incremented version

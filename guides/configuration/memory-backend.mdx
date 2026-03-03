@@ -1,0 +1,364 @@
+---
+title: Memory Backend Configuration
+description: Configure persistent AI memory with Mem0, Supabase vector store, and Neo4j knowledge graph
+---
+
+Tabby uses [Mem0](https://mem0.ai) for persistent AI memory, allowing the assistant to remember your preferences, coding style, and past interactions across sessions.
+
+## Architecture
+
+The memory system consists of three components:
+
+1. **Vector Store** - Supabase PostgreSQL with pgvector for semantic search
+2. **Graph Store** - Neo4j for knowledge graph relationships (optional)
+3. **Memory Backend** - FastAPI server running Mem0
+
+## Configuration
+
+### Backend Environment
+
+Configure the memory backend in `backend/.env`:
+
+<CodeGroup>
+
+```env backend/.env
+# Required: OpenAI for memory operations
+OPENAI_API_KEY="sk-..."
+
+# Required: Supabase PostgreSQL connection
+SUPABASE_CONNECTION_STRING="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+
+# Optional: Neo4j knowledge graph
+NEO4J_URL="neo4j+s://xxx.databases.neo4j.io"
+NEO4J_USERNAME="neo4j"
+NEO4J_PASSWORD="..."
+NEO4J_DATABASE="neo4j"
+AURA_INSTANCEID="..."
+AURA_INSTANCENAME="..."
+```
+
+</CodeGroup>
+
+### Frontend Configuration
+
+Point the frontend and Next.js backend to the memory API:
+
+<CodeGroup>
+
+```env frontend/.env.local
+NEXT_PUBLIC_MEMORY_API_URL="http://localhost:8000"
+```
+
+```env nextjs-backend/.env.local
+MEMORY_API_URL="http://localhost:8000"
+```
+
+</CodeGroup>
+
+## Mem0 Configuration
+
+The memory backend uses the following configuration (from `backend/main.py:36-76`):
+
+```python backend/main.py
+config = {
+    "llm": {
+        "provider": "openai",
+        "config": {
+            "model": "gpt-4.1-nano-2025-04-14",
+            "enable_vision": True,
+        }
+    },
+    "vector_store": {
+        "provider": "supabase",
+        "config": {
+            "connection_string": supabase_connection_string,
+            "collection_name": os.environ.get("SUPABASE_COLLECTION_NAME", "memories"),
+            "index_method": os.environ.get("SUPABASE_INDEX_METHOD", "hnsw"),
+            "index_measure": os.environ.get("SUPABASE_INDEX_MEASURE", "cosine_distance")
+        }
+    }
+}
+
+# Optional: Neo4j graph store
+if neo4j_url and neo4j_password:
+    config["graph_store"] = {
+        "provider": "neo4j",
+        "config": {
+            "url": neo4j_url,
+            "username": neo4j_username,
+            "password": neo4j_password,
+        }
+    }
+```
+
+### Configuration Options
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SUPABASE_COLLECTION_NAME` | `memories` | Collection name for vector storage |
+| `SUPABASE_INDEX_METHOD` | `hnsw` | Vector index method (hnsw or ivfflat) |
+| `SUPABASE_INDEX_MEASURE` | `cosine_distance` | Distance metric for similarity search |
+
+## Vector Store Setup
+
+Tabby uses a local Supabase instance running in Docker for vector storage.
+
+<Steps>
+  <Step title="Start Docker Desktop">
+    Ensure Docker Desktop is running before proceeding.
+  </Step>
+
+  <Step title="Initialize Supabase">
+    Run this command once in the project root:
+    ```bash
+    npx supabase init
+    ```
+  </Step>
+
+  <Step title="Start Supabase">
+    ```bash
+    npx supabase start
+    ```
+    The first run downloads ~13 Docker images. Subsequent starts take ~10 seconds.
+  </Step>
+
+  <Step title="Note Credentials">
+    Copy the **DB URL** from the output:
+    ```bash
+    npx supabase status
+    ```
+    Look for `DB URL` (format: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`)
+  </Step>
+
+  <Step title="Update Backend Environment">
+    Add the connection string to `backend/.env`:
+    ```env
+    SUPABASE_CONNECTION_STRING="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+    ```
+  </Step>
+</Steps>
+
+<Note>
+The database schema is automatically applied from `supabase/migrations/` when Supabase starts.
+</Note>
+
+### Supabase Commands
+
+| Command | Description |
+|---------|-------------|
+| `npx supabase start` | Start local Supabase |
+| `npx supabase stop` | Stop Supabase containers |
+| `npx supabase status` | View connection details |
+| `npx supabase db reset` | Reset database to migrations |
+
+<Warning>
+Docker Desktop must be running before executing `npx supabase start`.
+</Warning>
+
+## Neo4j Knowledge Graph (Optional)
+
+Neo4j provides a knowledge graph visualization of memory relationships, enhancing contextual understanding.
+
+### Setup Neo4j AuraDB
+
+<Steps>
+  <Step title="Create Free Instance">
+    Visit [Neo4j AuraDB](https://neo4j.com/cloud/platform/aura-graph-database/) and create a free instance.
+  </Step>
+
+  <Step title="Save Credentials">
+    Download the **credentials text file** when creating the instance. It contains:
+    - URI (e.g., `neo4j+s://xxx.databases.neo4j.io`)
+    - Username (usually `neo4j`)
+    - Password
+  </Step>
+
+  <Step title="Get Instance Details">
+    Note your **Instance ID** and **Instance Name** from the dashboard.
+  </Step>
+
+  <Step title="Configure Backend">
+    Add credentials to `backend/.env`:
+    ```env
+    NEO4J_URL="neo4j+s://xxx.databases.neo4j.io"
+    NEO4J_USERNAME="neo4j"
+    NEO4J_PASSWORD="your-password"
+    NEO4J_DATABASE="neo4j"
+    AURA_INSTANCEID="your-instance-id"
+    AURA_INSTANCENAME="your-instance-name"
+    ```
+  </Step>
+</Steps>
+
+<Note>
+The graph store is automatically enabled when `NEO4J_URL` and `NEO4J_PASSWORD` are set.
+</Note>
+
+### Benefits of Neo4j Integration
+
+- **Relationship Mapping** - Visualize connections between memories
+- **Contextual Retrieval** - Better understanding of related concepts
+- **Knowledge Graph** - See how information connects over time
+- **Brain Panel Visualization** - Interactive graph view in the app
+
+## Memory Types
+
+Tabby automatically classifies memories into five types using AI:
+
+| Type | Description | Examples |
+|------|-------------|----------|
+| **SHORT_TERM** | Temporary states, current activities | "Currently working on...", "Right now I'm..." |
+| **LONG_TERM** | Permanent preferences, identity | "I prefer dark mode", "My name is..." |
+| **EPISODIC** | Past events with time context | "Yesterday I had a meeting" |
+| **SEMANTIC** | General knowledge and facts | "Python uses indentation" |
+| **PROCEDURAL** | How-to knowledge, processes | "To deploy, run npm build" |
+
+<Note>
+Memory classification uses OpenAI's `gpt-4.1-nano-2025-04-14` model and happens automatically when memories are added.
+</Note>
+
+## Starting the Memory Backend
+
+<Tabs>
+  <Tab title="Development">
+    ```bash
+    cd backend
+    uv run main.py
+    ```
+    The server runs on `http://localhost:8000` with auto-reload enabled.
+  </Tab>
+
+  <Tab title="Production (Azure)">
+    Automatic deployment via GitHub Actions:
+    - **Trigger**: Push to `backend/` on `main` branch
+    - **URL**: [tabby-backend.azurecontainerapps.io](https://tabby-backend.jollydesert-22a4756c.centralindia.azurecontainerapps.io)
+    - **Process**: Docker build → Docker Hub → Azure Container Apps
+  </Tab>
+</Tabs>
+
+## Memory API Endpoints
+
+The FastAPI backend provides the following endpoints:
+
+### Core Operations
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/memory/add` | POST | Add memories from conversation |
+| `/memory/search` | POST | Search memories by query |
+| `/memory/get_all` | POST | Get all memories for a user |
+| `/memory/{memory_id}` | GET | Get specific memory by ID |
+| `/memory/update` | PUT | Update existing memory |
+| `/memory/{memory_id}` | DELETE | Delete specific memory |
+| `/memory/user/{user_id}` | DELETE | Delete all user memories |
+
+### Special Features
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/memory/add_image` | POST | Add image-based memory with vision |
+| `/memory/history/{memory_id}` | GET | Get memory change history |
+
+<Note>
+All memory operations support automatic type classification and metadata filtering.
+</Note>
+
+## Alternative Vector Store
+
+Mem0 also supports ChromaDB as an alternative to Supabase. To use Chroma:
+
+```python backend/main.py
+config = {
+    "vector_store": {
+        "provider": "chroma",
+        "config": {
+            "collection_name": "memories",
+            "path": "db",
+        }
+    }
+}
+```
+
+<Warning>
+Using ChromaDB requires modifying `backend/main.py`. Supabase is recommended for production use.
+</Warning>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Memory backend won't start">
+    **Check OpenAI API key**: The backend requires `OPENAI_API_KEY` in `backend/.env`
+    
+    **Verify Supabase is running**:
+    ```bash
+    npx supabase status
+    ```
+    
+    **Check Python dependencies**:
+    ```bash
+    cd backend
+    uv sync
+    ```
+  </Accordion>
+
+  <Accordion title="Memories not persisting">
+    **Verify connection string**: Ensure `SUPABASE_CONNECTION_STRING` points to the correct local database
+    
+    **Check Supabase logs**:
+    ```bash
+    docker logs supabase_db_postgres
+    ```
+    
+    **Test database connection**: Visit Studio at `http://localhost:54323` → SQL Editor
+  </Accordion>
+
+  <Accordion title="Neo4j graph not showing">
+    **Verify credentials**: Check that all `NEO4J_*` variables are set in `backend/.env`
+    
+    **Test connection**: Visit your Neo4j instance dashboard to verify it's active
+    
+    **Check backend logs**: The startup message shows if graph store is enabled
+  </Accordion>
+
+  <Accordion title="Vision memories failing">
+    **Verify image URLs**: Ensure image URLs are accessible
+    
+    **Check OpenAI API**: Vision features require `enable_vision: True` and proper API access
+    
+    **Review request format**: Image URLs must be in the correct format (see API endpoint docs)
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+### Memory Management
+
+- Use **memory types** to organize and filter memories effectively
+- Enable **auto-classification** for automatic memory categorization
+- Add **metadata** for better search and filtering
+- Regularly review memories in the Brain Panel
+
+### Performance
+
+- Use **HNSW indexing** for faster similarity search (default)
+- Set appropriate **search limits** to avoid overwhelming results
+- Consider **Neo4j** for complex relationship queries
+- Monitor **vector store size** and clean up old memories
+
+### Security
+
+- Keep Supabase local for development (Docker)
+- Use secure connections for production Neo4j (SSL/TLS)
+- Rotate database passwords regularly
+- Never commit `.env` files with credentials
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="AI Providers" icon="robot" href="/guides/configuration/ai-providers">
+    Configure OpenAI and other AI providers
+  </Card>
+  <Card title="Application Settings" icon="sliders" href="/guides/configuration/settings">
+    Customize Tabby settings and preferences
+  </Card>
+</CardGroup>

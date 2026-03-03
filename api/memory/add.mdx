@@ -1,0 +1,134 @@
+---
+title: Add Memory
+description: Add new memories from a conversation with automatic type classification
+---
+
+## POST /memory/add
+
+Add new memories from a conversation. Mem0 automatically extracts and stores relevant facts from the messages. The API can automatically classify the memory type using LLM-based classification.
+
+### Request Body
+
+<ParamField body="messages" type="array" required>
+  Array of message objects representing the conversation.
+  
+  <Expandable title="Message Object">
+    <ParamField body="role" type="string" required>
+      The role of the message sender (e.g., "user", "assistant").
+    </ParamField>
+    
+    <ParamField body="content" type="string" required>
+      The content of the message.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField body="user_id" type="string" required>
+  Unique identifier for the user. All memories are associated with this user ID.
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Optional metadata to attach to the memory. You can include custom fields like tags, timestamps, or manually specify `memory_type`.
+</ParamField>
+
+<ParamField body="auto_classify" type="boolean" default="true">
+  Enable automatic memory type classification. When enabled, the API uses GPT-4.1-nano to classify the memory into one of five types: LONG_TERM, SHORT_TERM, EPISODIC, SEMANTIC, or PROCEDURAL.
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates whether the operation was successful.
+</ResponseField>
+
+<ResponseField name="result" type="object">
+  The result from mem0 containing memory IDs and extracted information.
+  
+  <Expandable title="Result Object">
+    <ResponseField name="results" type="array">
+      Array of created memory objects with IDs and extracted content.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="classified_type" type="string">
+  The automatically classified memory type (LONG_TERM, SHORT_TERM, EPISODIC, SEMANTIC, or PROCEDURAL). Only present if `auto_classify` is enabled.
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:8000/memory/add \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      {
+        "role": "user",
+        "content": "I prefer dark mode in all my applications"
+      }
+    ],
+    "user_id": "user_123",
+    "auto_classify": true
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "result": {
+    "results": [
+      {
+        "id": "mem_abc123",
+        "memory": "User prefers dark mode in applications",
+        "event": "ADD"
+      }
+    ]
+  },
+  "classified_type": "LONG_TERM"
+}
+```
+
+### Manual Memory Type Override
+
+You can manually specify the memory type by including it in the metadata:
+
+```bash
+curl -X POST http://localhost:8000/memory/add \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      {
+        "role": "user",
+        "content": "Yesterday I attended the React conference"
+      }
+    ],
+    "user_id": "user_123",
+    "metadata": {
+      "memory_type": "EPISODIC",
+      "tags": ["conference", "react"]
+    }
+  }'
+```
+
+### Error Responses
+
+<ResponseField name="detail" type="string">
+  Error message describing what went wrong.
+</ResponseField>
+
+**500 Internal Server Error**
+
+```json
+{
+  "detail": "Failed to connect to vector store"
+}
+```
+
+### Implementation Details
+
+- **Source:** `backend/main.py:189`
+- **Classification Model:** GPT-4.1-nano-2025-04-14
+- **Default Classification:** LONG_TERM (used as fallback on classification errors)
+- **Memory Extraction:** Powered by mem0, which intelligently extracts facts from conversations

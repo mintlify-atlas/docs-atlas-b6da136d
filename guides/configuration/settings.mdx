@@ -1,0 +1,415 @@
+---
+title: Application Settings
+description: Customize Tabby's appearance, behavior, and keyboard shortcuts
+---
+
+Configure Tabby to match your preferences and workflow. Settings are accessible through the system tray menu or keyboard shortcuts.
+
+## Environment Configuration
+
+Tabby uses environment variables for core configuration across three components:
+
+### Frontend Application
+
+Configure the Electron app in `frontend/.env.local`:
+
+<CodeGroup>
+
+```env frontend/.env.local
+# Supabase (local Docker)
+NEXT_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+
+# Application Branding
+NEXT_PUBLIC_APP_NAME="Tabby"
+NEXT_PUBLIC_APP_ICON="/logos/tabby-logo.png"
+
+# Backend URLs
+NEXT_PUBLIC_API_URL="http://localhost:3001"
+NEXT_PUBLIC_MEMORY_API_URL="http://localhost:8000"
+```
+
+</CodeGroup>
+
+### Next.js Backend
+
+Configure the API backend in `nextjs-backend/.env.local`:
+
+<CodeGroup>
+
+```env nextjs-backend/.env.local
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
+SUPABASE_ADMIN="your-service-role-key"
+
+# Email (Optional)
+RESEND_API_KEY=""
+RESEND_DOMAIN=""
+
+# Application
+NEXT_PUBLIC_APP_NAME="Tabby"
+NEXT_PUBLIC_APP_ICON="/logos/tabby-logo.png"
+
+# AI Providers (see AI Provider Configuration)
+OPENAI_API_KEY=""
+GOOGLE_GENERATIVE_AI_API_KEY=""
+GROQ_API_KEY=""
+CEREBRAS_API_KEY=""
+OPENROUTER_API_KEY=""
+
+# Tools
+TAVILY_API_KEY=""
+
+# Memory Backend
+MEMORY_API_URL="http://localhost:8000"
+```
+
+</CodeGroup>
+
+### Memory Backend
+
+Configure the Python backend in `backend/.env`:
+
+<CodeGroup>
+
+```env backend/.env
+# OpenAI (Required)
+OPENAI_API_KEY="sk-..."
+
+# Supabase PostgreSQL
+SUPABASE_CONNECTION_STRING="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+
+# Neo4j (Optional)
+NEO4J_URL=""
+NEO4J_USERNAME=""
+NEO4J_PASSWORD=""
+NEO4J_DATABASE=""
+AURA_INSTANCEID=""
+AURA_INSTANCENAME=""
+```
+
+</CodeGroup>
+
+<Warning>
+Restart all services after modifying environment variables for changes to take effect.
+</Warning>
+
+## Application Branding
+
+Customize the application name and icon:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NEXT_PUBLIC_APP_NAME` | `Tabby` | Application name shown in UI |
+| `NEXT_PUBLIC_APP_ICON` | `/logos/tabby-logo.png` | Path to app icon |
+
+<Note>
+Branding changes require restarting the frontend and Next.js backend.
+</Note>
+
+## Keyboard Shortcuts
+
+Tabby provides global keyboard shortcuts for quick access to features.
+
+### Global Shortcuts
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Ctrl+\` | Action Menu | Open/close AI action menu |
+| `Ctrl+Space` | AI Suggestion | Get context-aware AI completion |
+| `Ctrl+Shift+B` | Brain Panel | Toggle memory dashboard |
+| `Ctrl+Alt+I` | Interview Ghost | Interview mode ghost text |
+| `Ctrl+Alt+J` | Voice Agent | Activate voice assistant |
+| `Ctrl+Shift+X` | Stop Autotyping | Stop AI typewriter mode |
+| `Ctrl+Shift+T` | Cycle Transcribe | Switch transcription modes |
+| `Ctrl+Alt+T` | Toggle Transcription | Enable/disable voice transcription |
+
+### Copilot Mode (Coding Interview)
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Alt+X` | Analyze Problem | Capture screen & analyze coding problem |
+| `Alt+Shift+X` | Update Analysis | Add new constraints to analysis |
+| `Alt+N` | Code Suggestions | Get code improvements |
+| `Ctrl+1-6` | Switch Tabs | Navigate between Chat, Idea, Code, Walkthrough, Test Cases, Memories |
+
+### Action Menu
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Ctrl+\` | Open Menu | Show action menu with selected text |
+| `Tab` | Quick Chat | Switch to quick AI chat mode |
+| `Alt+[Key]` | Trigger Action | Execute specific action (e.g., Fix Grammar) |
+
+### Window Controls
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `Ctrl+Arrow` | Move Window | Reposition floating windows |
+| `Esc` | Back/Close | Close panels or go back |
+| `Enter` | Accept | Accept result and paste |
+
+<Note>
+Keyboard shortcuts are currently hardcoded. Future versions may support customization.
+</Note>
+
+## System Tray
+
+Tabby runs in the system tray for quick access. Right-click the tray icon for:
+
+- **Show Actions Menu** - Open AI action menu
+- **Brain Panel** - View memory dashboard
+- **Settings** - Application preferences (future)
+- **Quit** - Exit application
+
+## Text Output Modes
+
+Tabby supports two modes for AI-generated text output:
+
+### Paste Mode (Default)
+
+Standard clipboard paste. AI responses are copied to clipboard and pasted normally.
+
+- **Speed**: Instant
+- **Detection**: Standard paste operation
+- **Use Case**: General use, quick insertions
+
+### Typewriter Mode
+
+AI types character-by-character, simulating human typing.
+
+- **Speed**: Character-by-character
+- **Detection**: Undetectable as AI-generated
+- **Use Case**: Situations requiring human-like input
+- **Shortcut**: `Ctrl+Shift+X` to stop
+
+<Warning>
+Typewriter mode is slower but appears as natural typing. Use responsibly.
+</Warning>
+
+## Service Ports
+
+Default ports for Tabby services:
+
+| Service | Port | URL |
+|---------|------|-----|
+| Frontend (Electron) | 3000 | `http://localhost:3000` |
+| Next.js Backend | 3001 | `http://localhost:3001` |
+| Memory API (Python) | 8000 | `http://localhost:8000` |
+| Windows MCP Server | 8001 | `http://localhost:8001` |
+| Supabase API | 54321 | `http://127.0.0.1:54321` |
+| Supabase Studio | 54323 | `http://localhost:54323` |
+| Supabase DB | 54322 | `postgresql://...@127.0.0.1:54322/postgres` |
+
+<Note>
+Port conflicts can be resolved by modifying the respective service configurations.
+</Note>
+
+## Email Configuration (Optional)
+
+Tabby supports email notifications via Resend:
+
+```env nextjs-backend/.env.local
+RESEND_API_KEY="re_..."
+RESEND_DOMAIN="your-domain.com"
+```
+
+<Tabs>
+  <Tab title="Get Resend API Key">
+    1. Visit [Resend](https://resend.com)
+    2. Create an account or sign in
+    3. Navigate to **API Keys**
+    4. Create a new API key
+    5. Add a verified domain (or use Resend's test domain)
+  </Tab>
+  <Tab title="Configure">
+    Add to `nextjs-backend/.env.local`:
+    ```env
+    RESEND_API_KEY="re-your-key-here"
+    RESEND_DOMAIN="yourdomain.com"
+    ```
+  </Tab>
+</Tabs>
+
+## Windows MCP Integration (Optional)
+
+Tabby supports Windows desktop automation via the Windows MCP server:
+
+<Tabs>
+  <Tab title="Start MCP Server">
+    ```bash
+    cd frontend
+    pnpm run windows-mcp
+    ```
+    Server runs on `http://localhost:8001`
+  </Tab>
+  <Tab title="Features">
+    - Desktop automation
+    - System-level control
+    - Window management
+    - File operations
+  </Tab>
+</Tabs>
+
+<Note>
+Windows MCP requires Python and `uvx`. Install via: `pip install uvx`
+</Note>
+
+## Built-in Actions
+
+Tabby includes pre-configured AI actions accessible via `Ctrl+\`:
+
+### Text Transformation
+
+- **Fix Grammar** - Correct grammatical errors
+- **Shorten** - Make text more concise
+- **Expand** - Add more detail and context
+
+### Tone Adjustment
+
+- **Professional** - Formal business tone
+- **Casual** - Friendly, relaxed tone
+- **Friendly** - Warm and approachable
+
+### Content Generation
+
+- **Email Writer** - Compose professional emails
+- **Custom Prompts** - Create your own actions
+
+<Note>
+Custom actions and prompts will be configurable in future releases.
+</Note>
+
+## Copilot Tabs
+
+When using coding interview mode (`Alt+X`), switch between tabs:
+
+| Tab | Shortcut | Content |
+|-----|----------|--------|
+| **Chat** | `Ctrl+1` | Free-form conversation with context |
+| **Idea** | `Ctrl+2` | Problem breakdown, observations, approach |
+| **Code** | `Ctrl+3` | Clean, commented implementation |
+| **Walkthrough** | `Ctrl+4` | Step-by-step solution explanation |
+| **Test Cases** | `Ctrl+5` | Edge cases with input/output/reasoning |
+| **Memories** | `Ctrl+6` | Retrieved memories about your preferences |
+
+## AI Suggestions
+
+Tabby provides two modes for AI suggestions:
+
+### Hotkey Mode (Default)
+
+Manual trigger via `Ctrl+Space`:
+- No automatic monitoring
+- Privacy-friendly
+- On-demand completions
+
+### Auto Mode (Clipboard Watcher)
+
+Automatic suggestions based on clipboard:
+- Monitors clipboard for context
+- Automatic completions
+- More proactive assistance
+
+<Warning>
+Auto mode monitors clipboard activity. Use with awareness of privacy implications.
+</Warning>
+
+## Production Deployment
+
+### Frontend (Windows Executable)
+
+```bash
+cd frontend
+npm run dist
+```
+
+Output: `frontend/dist/Tabby-Setup.exe`
+
+### Next.js Backend (Vercel)
+
+Automatic deployment from `main` branch:
+- **Platform**: Vercel
+- **URL**: [tabby-api-psi.vercel.app](https://tabby-api-psi.vercel.app)
+- **Trigger**: Push to `main`
+
+### Memory Backend (Azure)
+
+Automatic deployment via GitHub Actions:
+- **Platform**: Azure Container Apps
+- **URL**: [tabby-backend.azurecontainerapps.io](https://tabby-backend.jollydesert-22a4756c.centralindia.azurecontainerapps.io)
+- **Trigger**: Push to `backend/` directory
+
+<Note>
+Production deployments require setting up GitHub secrets for credentials and API keys.
+</Note>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Keyboard shortcuts not working">
+    - Check if another app is using the same shortcuts
+    - Restart the Electron application
+    - Verify the app is running (check system tray)
+    - Run as administrator if on Windows
+  </Accordion>
+
+  <Accordion title="Services won't start">
+    - Verify Docker Desktop is running (for Supabase)
+    - Check for port conflicts (3000, 3001, 8000)
+    - Review environment variables in `.env.local` files
+    - Check console logs for specific error messages
+  </Accordion>
+
+  <Accordion title="AI responses not working">
+    - Verify API keys are set in `nextjs-backend/.env.local`
+    - Check Next.js backend is running on port 3001
+    - Review browser console for network errors
+    - Ensure AI provider has credits/quota available
+  </Accordion>
+
+  <Accordion title="Memory not persisting">
+    - Verify memory backend is running on port 8000
+    - Check `MEMORY_API_URL` in frontend and backend configs
+    - Ensure Supabase is running (`npx supabase status`)
+    - Review memory backend logs for errors
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+### Development Workflow
+
+1. Start Docker Desktop first
+2. Run `npx supabase start` and note credentials
+3. Configure all `.env.local` files with Supabase keys
+4. Start services in order: Memory backend → Next.js backend → Frontend
+5. Use system tray for quick access to features
+
+### Security
+
+- Keep `.env` files out of version control
+- Use `.env.example` as templates
+- Rotate API keys regularly
+- Use local Supabase for development
+- Secure production deployments with proper authentication
+
+### Performance
+
+- Use Groq for fast inference when speed is critical
+- Reserve powerful models for complex tasks
+- Monitor memory usage in Brain Panel
+- Clean up old memories periodically
+- Optimize vector store indexes for your data size
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="AI Providers" icon="robot" href="/guides/configuration/ai-providers">
+    Configure OpenAI, Groq, and other AI providers
+  </Card>
+  <Card title="Memory Backend" icon="brain" href="/guides/configuration/memory-backend">
+    Set up persistent memory with Mem0
+  </Card>
+</CardGroup>

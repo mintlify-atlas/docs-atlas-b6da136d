@@ -1,0 +1,212 @@
+---
+title: Brain Panel Dashboard
+description: Monitor and manage AI memory through an elegant floating dashboard that shows real-time memory capture and learning activity
+---
+
+The Brain Panel is a floating dashboard that provides real-time visibility into Tabby's memory system. It displays stored memories, monitors automatic context capture, and shows learning activity as the AI processes new information.
+
+## Overview
+
+The Brain Panel appears as an elegant, draggable floating window that can be toggled between collapsed and expanded states. When collapsed, it shows a brain icon with status indicators; when expanded, it reveals a full dashboard of recent memories and controls.
+
+<Info>
+The Brain Panel connects to the Memory API at `backend/main.py:13-17` and updates every 30 seconds to show the latest memories.
+</Info>
+
+## Keyboard Shortcut
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl+Shift+B` | Toggle Brain Panel |
+
+## Panel States
+
+### Collapsed State
+
+The collapsed Brain Panel appears as a floating brain icon with visual indicators:
+
+- **Brain Icon**: Pulses when actively learning from new information
+- **Status Dot**: Green when context capture is enabled, gray when disabled
+- **Sparkles Animation**: Appears during active memory processing
+
+Implementation: `frontend/src/components/brain-panel/collapsed-brain.tsx:13-65`
+
+### Expanded State
+
+The expanded panel reveals the full memory dashboard with these sections:
+
+<Steps>
+  <Step title="Panel Header">
+    Shows the brain icon, memory count, and collapse button. The brain icon pulses during active learning.
+  </Step>
+  
+  <Step title="Activity Toast">
+    Displays real-time notifications when memories are captured:
+    - "New context captured" - Screenshot analysis completed
+    - "Processing screenshot..." - Vision analysis in progress
+    - Recent memory content from text capture
+  </Step>
+  
+  <Step title="Context Capture Toggle">
+    Switch to enable/disable automatic screenshot capture and analysis. Shows eye icon (green when enabled, gray when disabled).
+  </Step>
+  
+  <Step title="Recent Memories List">
+    Scrollable list of the 5 most recent memories with:
+    - Memory content (truncated to 2 lines)
+    - Timestamp of when it was captured
+    - Smooth stagger animation on load
+  </Step>
+  
+  <Step title="Panel Footer">
+    Shows the keyboard shortcut reminder and settings button to open full settings.
+  </Step>
+</Steps>
+
+Implementation: `frontend/src/components/brain-panel/expanded-panel.tsx:25-193`
+
+## Real-Time Features
+
+### Memory Updates
+
+The Brain Panel automatically:
+
+- Fetches recent memories every 30 seconds using React Query
+- Listens for real-time memory storage events via Electron IPC
+- Shows visual feedback when new memories are captured
+- Auto-refreshes the memory list when new data is stored
+
+```typescript
+const { data: memories = [], refetch } = useQuery({
+  queryKey: ["recent-memories", userId],
+  queryFn: () => fetchRecentMemories(userId!),
+  refetchInterval: 30000,
+  enabled: !!userId,
+})
+```
+
+### Learning Indicators
+
+When Tabby is processing and learning from new information:
+
+1. The brain icon pulses with animation
+2. A sparkles icon appears in the activity toast
+3. The panel shows "Processing screenshot..." or the memory content
+4. After 2 seconds, the pulsing stops
+5. After 5 seconds, the activity toast disappears
+
+Implementation: `frontend/src/components/brain-panel/brain-panel.tsx:50-56`
+
+## Screenshot Analysis Flow
+
+When automatic context capture takes a screenshot:
+
+<Steps>
+  <Step title="Screenshot Captured">
+    The context capture service takes a 1280x720 screenshot and sends it to the renderer process.
+  </Step>
+  
+  <Step title="Upload to Supabase">
+    Brain Panel uploads the screenshot to Supabase storage in the `context-captures` bucket.
+  </Step>
+  
+  <Step title="Vision Analysis">
+    Sends the public URL to the Memory API's `/memory/add_image` endpoint with:
+    - `image_url`: Public Supabase URL
+    - `context`: "Analyze this screenshot and extract key context about what the user is working on."
+    - `user_id`: Current user ID
+    - `metadata`: Source and timestamp information
+  </Step>
+  
+  <Step title="Memory Stored">
+    GPT-4.1-nano with vision analyzes the screenshot and stores extracted context in the memory system.
+  </Step>
+  
+  <Step title="Cleanup">
+    After 30 seconds, the temporary screenshot is deleted from Supabase storage.
+  </Step>
+</Steps>
+
+Implementation: `frontend/src/components/brain-panel/brain-panel.tsx:60-108`
+
+<Warning>
+Screenshot analysis uses GPT-4.1-nano vision, which is more expensive than text-only operations. Enable context capture selectively to manage costs.
+</Warning>
+
+## Data Flow
+
+The Brain Panel orchestrates several data flows:
+
+```
+User Activity → Context Capture Service (Electron)
+  ↓
+Screenshot → Brain Panel React Component
+  ↓
+Supabase Storage (upload-screenshot.ts)
+  ↓
+Memory API /memory/add_image (main.py:263-305)
+  ↓
+Mem0 with Vision Processing
+  ↓
+Vector Store (Supabase) + Graph Store (Neo4j)
+  ↓
+Brain Panel UI Update
+```
+
+## Memory Display
+
+Memories are fetched from the Memory API and displayed with:
+
+- **Limit**: 5 most recent memories
+- **Refresh**: Every 30 seconds automatically
+- **Sorting**: By creation timestamp (most recent first)
+- **Display**: Memory content + formatted timestamp
+- **Empty State**: Brain icon with "No memories yet" message
+
+Implementation: `frontend/src/components/brain-panel/brain-panel.tsx:18-27`
+
+## Integration Points
+
+### Electron IPC
+
+The Brain Panel uses Electron IPC for system integration:
+
+- `getContextCaptureEnabled()` - Check if context capture is enabled
+- `setContextCaptureEnabled(enabled)` - Toggle context capture on/off
+- `setBrainPanelCollapsed(collapsed)` - Persist panel state
+- `onMemoryStored(callback)` - Listen for text memory events
+- `onCaptureStatusChanged(callback)` - Listen for capture toggle events
+- `onAnalyzeScreenshot(callback)` - Receive screenshots for analysis
+- `openSettings()` - Open settings from footer button
+
+### Memory API Endpoints
+
+The Brain Panel interacts with these API endpoints:
+
+- `POST /memory/get_all` - Fetch all memories for the user (brain-panel.tsx:18-27)
+- `POST /memory/add_image` - Store screenshot-based memories (brain-panel.tsx:71-83)
+
+## Styling & Design
+
+The Brain Panel features:
+
+- **Glass morphism**: Background blur with 80% opacity
+- **Smooth animations**: Spring physics for expand/collapse (damping: 25, stiffness: 300)
+- **Drag handle**: Top bar with drag region for repositioning
+- **Color scheme**: Violet accent color for brain/learning indicators
+- **Responsive**: 300px width, auto height based on content
+- **Shadow**: Layered shadows for depth (shadow-2xl with black/20 opacity)
+
+Implementation: `frontend/src/components/brain-panel/expanded-panel.tsx:34-44`
+
+<Note>
+The panel uses Framer Motion's AnimatePresence with "wait" mode to ensure smooth transitions between collapsed and expanded states.
+</Note>
+
+## Best Practices
+
+1. **Enable Context Capture Selectively**: Only turn on automatic screenshot capture when you need it to conserve API costs
+2. **Monitor Memory Count**: The header shows total memory count - use this to gauge how much context Tabby has learned
+3. **Check Recent Activity**: The activity toast provides instant feedback about what Tabby is learning
+4. **Use Keyboard Shortcut**: `Ctrl+Shift+B` is faster than clicking to toggle the panel
+5. **Collapse When Not Needed**: Keep the panel collapsed to minimize screen space usage while still showing status

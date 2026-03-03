@@ -1,0 +1,635 @@
+---
+title: Installation
+description: Complete installation guide for Tabby AI Keyboard with all prerequisites and configuration options
+---
+
+# Complete Installation Guide
+
+This guide covers the complete installation process for Tabby AI Keyboard, including all prerequisites, optional features, and advanced configuration.
+
+<Note>
+  Looking for a faster setup? Check out the [Quick Start guide](/quickstart) for essential steps only.
+</Note>
+
+## System Requirements
+
+<CardGroup cols={2}>
+  <Card title="Operating System" icon="windows">
+    Windows 10 or Windows 11
+  </Card>
+  <Card title="Architecture" icon="microchip">
+    x64 (64-bit) processor
+  </Card>
+  <Card title="RAM" icon="memory">
+    Minimum 8GB (16GB recommended)
+  </Card>
+  <Card title="Disk Space" icon="hard-drive">
+    At least 5GB free space
+  </Card>
+</CardGroup>
+
+## Prerequisites
+
+### Required Software
+
+<Steps>
+  <Step title="Node.js 18+">
+    Download and install from [nodejs.org](https://nodejs.org/)
+    
+    Verify installation:
+    ```bash
+    node --version  # Should be v18.0.0 or higher
+    ```
+  </Step>
+  
+  <Step title="Python 3.12+">
+    Download and install from [python.org](https://www.python.org/downloads/)
+    
+    <Warning>
+      Make sure to check "Add Python to PATH" during installation.
+    </Warning>
+    
+    Verify installation:
+    ```bash
+    python --version  # Should be 3.12.0 or higher
+    ```
+  </Step>
+  
+  <Step title="pnpm Package Manager">
+    Install globally via npm:
+    ```bash
+    npm install -g pnpm
+    ```
+    
+    Verify installation:
+    ```bash
+    pnpm --version
+    ```
+  </Step>
+  
+  <Step title="uv Python Package Manager">
+    Install from [astral.sh/uv](https://github.com/astral-sh/uv)
+    
+    Or via pip:
+    ```bash
+    pip install uv
+    ```
+    
+    Verify installation:
+    ```bash
+    uv --version
+    ```
+  </Step>
+  
+  <Step title="Docker Desktop">
+    Download and install from [docker.com](https://www.docker.com/products/docker-desktop/)
+    
+    <Info>
+      Docker Desktop is required for running the local Supabase instance. Make sure it's running before starting Tabby.
+    </Info>
+    
+    After installation, start Docker Desktop and verify:
+    ```bash
+    docker --version
+    ```
+  </Step>
+</Steps>
+
+### API Keys
+
+<Tip>
+  You'll need at least one AI provider. OpenAI is recommended for the best experience.
+</Tip>
+
+#### Required
+
+- **OpenAI API Key** - Get it from [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+
+#### Optional AI Providers
+
+- **Google Generative AI** - [ai.google.dev](https://ai.google.dev/)
+- **Groq** - [console.groq.com](https://console.groq.com/)
+- **Cerebras** - [cerebras.ai](https://cerebras.ai/)
+- **XAI** - [x.ai](https://x.ai/)
+- **OpenRouter** - [openrouter.ai](https://openrouter.ai/)
+
+#### Additional Services
+
+- **Tavily API Key** - For web search capabilities - [tavily.ai](https://tavily.ai/)
+- **Neo4j Instance** - For knowledge graph visualization (optional) - [neo4j.com/cloud/platform/aura-graph-database](https://neo4j.com/cloud/platform/aura-graph-database/)
+
+## Installation Steps
+
+### 1. Clone Repository
+
+<CodeGroup>
+```bash HTTPS
+git clone https://github.com/CubeStar1/ai-keyboard.git
+cd ai-keyboard
+```
+
+```bash SSH
+git clone git@github.com:CubeStar1/ai-keyboard.git
+cd ai-keyboard
+```
+</CodeGroup>
+
+### 2. Install Dependencies
+
+Install dependencies for each component:
+
+<Steps>
+  <Step title="Frontend (Electron + Next.js)">
+    ```bash
+    cd frontend
+    pnpm install
+    ```
+    
+    This installs:
+    - Electron 38
+    - Next.js 15
+    - React 19
+    - Vercel AI SDK
+    - UI components (Radix UI, Tailwind CSS)
+  </Step>
+  
+  <Step title="Next.js Backend">
+    ```bash
+    cd ../nextjs-backend
+    pnpm install
+    ```
+    
+    This installs:
+    - AI SDK integrations
+    - Supabase client
+    - API route handlers
+  </Step>
+  
+  <Step title="Memory Backend (Python)">
+    ```bash
+    cd ../backend
+    uv sync
+    ```
+    
+    This installs:
+    - FastAPI
+    - Mem0
+    - Supabase vector store
+    - Neo4j connector (optional)
+  </Step>
+</Steps>
+
+### 3. Database Setup
+
+<Info>
+  Tabby uses a local Supabase instance running in Docker, not the cloud service. This gives you full control and privacy.
+</Info>
+
+<Steps>
+  <Step title="Start Docker Desktop">
+    Launch Docker Desktop and wait for it to fully initialize. You should see the Docker icon in your system tray.
+  </Step>
+  
+  <Step title="Initialize Supabase">
+    From the project root directory:
+    
+    ```bash
+    npx supabase init
+    ```
+    
+    <Note>
+      This command only needs to be run once. It creates the Supabase configuration directory.
+    </Note>
+  </Step>
+  
+  <Step title="Start Local Supabase">
+    ```bash
+    npx supabase start
+    ```
+    
+    <Warning>
+      The first run will download approximately 13 Docker images. This can take 5-10 minutes depending on your internet connection. Subsequent starts take only ~10 seconds.
+    </Warning>
+    
+    When complete, you'll see output similar to:
+    
+    ```
+    Started supabase local development setup.
+    
+             API URL: http://127.0.0.1:54321
+          GraphQL URL: http://127.0.0.1:54321/graphql/v1
+       S3 Storage URL: http://127.0.0.1:54321/storage/v1/s3
+              DB URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          Studio URL: http://127.0.0.1:54323
+        Inbucket URL: http://127.0.0.1:54324
+            anon key: eyJh...
+    service_role key: eyJh...
+       S3 Access Key: <access-key>
+       S3 Secret Key: <secret-key>
+          S3 Region: local
+    ```
+    
+    **Save these credentials** - you'll need them for environment configuration.
+  </Step>
+  
+  <Step title="Verify Database Schema">
+    The database schema is automatically applied from `supabase/migrations/`. 
+    
+    Verify by visiting Supabase Studio:
+    ```
+    http://localhost:54323
+    ```
+    
+    Navigate to Table Editor to see the tables.
+  </Step>
+  
+  <Step title="Create Storage Buckets">
+    Create the required storage buckets for context captures and project assets.
+    
+    <Tabs>
+      <Tab title="PowerShell">
+        ```powershell
+        $headers = @{
+          "apikey" = "<SERVICE_ROLE_KEY from step 3>"
+          "Authorization" = "Bearer <SERVICE_ROLE_KEY from step 3>"
+          "Content-Type" = "application/json"
+        }
+        
+        # Create context-captures bucket
+        Invoke-RestMethod -Uri "http://127.0.0.1:54321/storage/v1/bucket" `
+          -Method Post `
+          -Headers $headers `
+          -Body '{"id":"context-captures","name":"context-captures","public":true}'
+        
+        # Create project-assets bucket
+        Invoke-RestMethod -Uri "http://127.0.0.1:54321/storage/v1/bucket" `
+          -Method Post `
+          -Headers $headers `
+          -Body '{"id":"project-assets","name":"project-assets","public":true}'
+        ```
+      </Tab>
+      
+      <Tab title="Supabase Studio UI">
+        1. Open `http://localhost:54323`
+        2. Navigate to Storage
+        3. Click "New Bucket"
+        4. Create bucket with ID `context-captures`, set to Public
+        5. Create bucket with ID `project-assets`, set to Public
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+#### Supabase Management Commands
+
+| Action | Command |
+| --- | --- |
+| Start Supabase | `npx supabase start` |
+| Stop Supabase | `npx supabase stop` |
+| Check Status | `npx supabase status` |
+| Reset Database | `npx supabase db reset` |
+| Open Studio | `http://localhost:54323` |
+
+### 4. Neo4j Setup (Optional)
+
+<Info>
+  Neo4j provides knowledge graph visualization for your memories. This is optional but recommended for advanced memory features.
+</Info>
+
+<Steps>
+  <Step title="Create Neo4j Instance">
+    1. Go to [Neo4j AuraDB](https://neo4j.com/cloud/platform/aura-graph-database/)
+    2. Sign up for a free account
+    3. Create a new free instance
+  </Step>
+  
+  <Step title="Save Credentials">
+    When creating the instance, Neo4j will provide a credentials file. Download and save it securely.
+    
+    You'll need:
+    - **URI** (e.g., `neo4j+s://xxxxx.databases.neo4j.io`)
+    - **Username** (usually `neo4j`)
+    - **Password** (generated password)
+    - **Instance ID**
+    - **Instance Name**
+  </Step>
+  
+  <Step title="Wait for Instance">
+    Wait for your instance to be fully provisioned (usually takes 1-2 minutes).
+  </Step>
+</Steps>
+
+### 5. Environment Configuration
+
+Create and configure environment files for each component.
+
+<Steps>
+  <Step title="Create Environment Files">
+    ```bash
+    # Frontend
+    cp frontend/env.example frontend/.env.local
+    
+    # Next.js Backend
+    cp nextjs-backend/env.example nextjs-backend/.env.local
+    
+    # Memory Backend
+    cp backend/env.example backend/.env
+    ```
+  </Step>
+  
+  <Step title="Configure Frontend">
+    Edit `frontend/.env.local`:
+    
+    ```env
+    # Supabase (from `npx supabase status`)
+    NEXT_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321"
+    NEXT_PUBLIC_SUPABASE_ANON_KEY="<ANON_KEY>"
+    SUPABASE_ADMIN="<SERVICE_ROLE_KEY>"
+    
+    # App Configuration
+    NEXT_PUBLIC_APP_NAME="Tabby"
+    NEXT_PUBLIC_APP_ICON="/logos/tabby-logo.png"
+    
+    # Backend URLs
+    NEXT_PUBLIC_API_URL="http://localhost:3001"
+    NEXT_PUBLIC_MEMORY_API_URL="http://localhost:8000"
+    ```
+  </Step>
+  
+  <Step title="Configure Next.js Backend">
+    Edit `nextjs-backend/.env.local`:
+    
+    ```env
+    # Supabase
+    NEXT_PUBLIC_SUPABASE_URL="http://127.0.0.1:54321"
+    NEXT_PUBLIC_SUPABASE_ANON_KEY="<ANON_KEY>"
+    SUPABASE_ADMIN="<SERVICE_ROLE_KEY>"
+    
+    # Email (optional)
+    RESEND_API_KEY=""
+    RESEND_DOMAIN=""
+    
+    # App Configuration
+    NEXT_PUBLIC_APP_NAME=Tabby
+    NEXT_PUBLIC_APP_ICON='/logos/tabby-logo.png'
+    
+    # AI Providers
+    OPENAI_API_KEY="your-openai-api-key"
+    GOOGLE_GENERATIVE_AI_API_KEY=""  # Optional
+    GROQ_API_KEY=""                   # Optional
+    CEREBRAS_API_KEY=""               # Optional
+    OPENROUTER_API_KEY=""             # Optional
+    XAI_API_KEY=""                    # Optional
+    
+    # Web Search
+    TAVILY_API_KEY=""                 # Optional
+    
+    # Memory Backend
+    MEMORY_API_URL="http://localhost:8000"
+    ```
+  </Step>
+  
+  <Step title="Configure Memory Backend">
+    Edit `backend/.env`:
+    
+    ```env
+    # AI Provider
+    OPENAI_API_KEY="your-openai-api-key"
+    
+    # Supabase PostgreSQL (from `npx supabase status`)
+    SUPABASE_CONNECTION_STRING="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+    
+    # Neo4j (optional - only if you set up Neo4j)
+    NEO4J_URL="neo4j+s://xxxxx.databases.neo4j.io"
+    NEO4J_USERNAME="neo4j"
+    NEO4J_PASSWORD="your-neo4j-password"
+    ```
+  </Step>
+</Steps>
+
+## Running Tabby
+
+<Warning>
+  Make sure Docker Desktop is running before starting the services.
+</Warning>
+
+### Development Mode
+
+Start all services in separate terminal windows:
+
+<Steps>
+  <Step title="Terminal 1: Start Supabase">
+    ```bash
+    npx supabase start
+    ```
+    
+    Wait for Supabase to fully start before proceeding.
+  </Step>
+  
+  <Step title="Terminal 2: Start Memory Backend">
+    ```bash
+    cd backend
+    uv run main.py
+    ```
+    
+    The memory API will start on `http://localhost:8000`
+  </Step>
+  
+  <Step title="Terminal 3: Start Next.js Backend">
+    ```bash
+    cd nextjs-backend
+    pnpm dev
+    ```
+    
+    The API backend will start on `http://localhost:3001`
+  </Step>
+  
+  <Step title="Terminal 4: Start Windows MCP (Optional)">
+    ```bash
+    cd frontend
+    pnpm run windows-mcp
+    ```
+    
+    <Info>
+      This provides desktop automation features via MCP. Optional but recommended.
+    </Info>
+  </Step>
+  
+  <Step title="Terminal 5: Start Electron App">
+    ```bash
+    cd frontend
+    pnpm dev
+    ```
+    
+    The Electron app will launch with the Next.js frontend on `http://localhost:3000`
+  </Step>
+</Steps>
+
+### Verify Installation
+
+Check that all services are running:
+
+| Service | URL | Description |
+| --- | --- | --- |
+| Supabase Studio | `http://localhost:54323` | Database admin UI |
+| Frontend | `http://localhost:3000` | Main app interface |
+| Next.js Backend | `http://localhost:3001` | API backend |
+| Memory API | `http://localhost:8000` | Memory service |
+| Windows MCP | `http://localhost:8001` | Desktop automation |
+
+## Building for Production
+
+### Local Build
+
+Create a production executable:
+
+```bash
+cd frontend
+npm run dist
+```
+
+The `.exe` installer will be created in `frontend/dist/`.
+
+### GitHub Releases
+
+For automated releases via GitHub Actions:
+
+<Steps>
+  <Step title="Configure GitHub Secrets">
+    Add these secrets to your repository settings:
+    
+    - `GH_TOKEN` - GitHub Personal Access Token with `repo` scope
+    - All `NEXT_PUBLIC_*` variables from `.env.local`
+    - All `SUPABASE_*` variables
+  </Step>
+  
+  <Step title="Trigger Release">
+    ```bash
+    cd frontend
+    npm run release
+    ```
+    
+    This will:
+    1. Read the version from `package.json`
+    2. Create a Git tag (e.g., `v0.1.1`)
+    3. Push the tag to GitHub
+    4. Trigger the GitHub Action
+    5. Build the Windows executable
+    6. Create a draft GitHub Release
+  </Step>
+</Steps>
+
+## Post-Installation
+
+<Steps>
+  <Step title="Access System Tray">
+    After starting the Electron app, look for the Tabby icon in your system tray.
+    
+    Right-click the icon to access:
+    - Show Actions Menu
+    - Brain Panel
+    - Settings
+    - Quit
+  </Step>
+  
+  <Step title="Configure Settings">
+    Open Settings from the system tray to:
+    - Select your preferred AI model
+    - Configure output mode (Paste/Typewriter)
+    - Customize keyboard shortcuts
+    - Set up custom actions
+  </Step>
+  
+  <Step title="Learn Shortcuts">
+    Familiarize yourself with the [keyboard shortcuts](/shortcuts/overview) to maximize productivity.
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Docker Desktop Issues">
+    **Problem**: Supabase fails to start
+    
+    **Solutions**:
+    - Ensure Docker Desktop is running
+    - Check available disk space (need at least 5GB)
+    - Verify Docker is not blocked by antivirus/firewall
+    - Try restarting Docker Desktop
+    - Run `docker system prune` to clean up old images
+  </Accordion>
+  
+  <Accordion title="Port Conflicts">
+    **Problem**: Services fail because ports are in use
+    
+    **Check ports**:
+    ```bash
+    # Windows PowerShell
+    netstat -ano | findstr :3000
+    netstat -ano | findstr :3001
+    netstat -ano | findstr :8000
+    netstat -ano | findstr :54321
+    ```
+    
+    **Solutions**:
+    - Stop services using those ports
+    - Or modify the ports in configuration files
+  </Accordion>
+  
+  <Accordion title="Python/uv Issues">
+    **Problem**: Memory backend fails to start
+    
+    **Solutions**:
+    - Verify Python 3.12+ is installed: `python --version`
+    - Reinstall uv: `pip install --upgrade uv`
+    - Delete `.venv` folder in `backend/` and run `uv sync` again
+    - Check that Supabase connection string is correct
+  </Accordion>
+  
+  <Accordion title="Node.js/pnpm Issues">
+    **Problem**: Frontend or backend fails to start
+    
+    **Solutions**:
+    - Verify Node.js 18+: `node --version`
+    - Clear pnpm cache: `pnpm store prune`
+    - Delete `node_modules` and `pnpm-lock.yaml`, then run `pnpm install`
+    - Check all environment variables are set
+  </Accordion>
+  
+  <Accordion title="Supabase Storage Issues">
+    **Problem**: Storage buckets not created
+    
+    **Solutions**:
+    - Create buckets manually via Supabase Studio at `http://localhost:54323`
+    - Ensure service_role key is correct in PowerShell command
+    - Check bucket names are exactly: `context-captures` and `project-assets`
+    - Verify buckets are set to "Public"
+  </Accordion>
+  
+  <Accordion title="Neo4j Connection Issues">
+    **Problem**: Memory service can't connect to Neo4j
+    
+    **Solutions**:
+    - Verify Neo4j instance is running in AuraDB dashboard
+    - Check credentials (URI, username, password) are correct
+    - Ensure URI includes `neo4j+s://` protocol
+    - Test connection using Neo4j Browser
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration Guide" icon="sliders" href="/guides/configuration/settings">
+    Customize Tabby to match your workflow
+  </Card>
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/shortcuts/overview">
+    Master all shortcuts for maximum productivity
+  </Card>
+  <Card title="Interview Copilot" icon="graduation-cap" href="/features/interview-copilot/overview">
+    Learn to use the coding interview assistant
+  </Card>
+  <Card title="Memory System" icon="brain" href="/features/memory/brain-panel">
+    Understand how Tabby remembers and learns
+  </Card>
+</CardGroup>

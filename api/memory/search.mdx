@@ -1,0 +1,160 @@
+---
+title: Search Memory
+description: Search memories based on semantic similarity with optional type filtering
+---
+
+## POST /memory/search
+
+Search memories based on a query using semantic similarity. Returns relevant memories with similarity scores. Optionally filter results by memory type.
+
+### Request Body
+
+<ParamField body="query" type="string" required>
+  The search query. The API will find memories semantically similar to this query.
+</ParamField>
+
+<ParamField body="user_id" type="string" required>
+  Unique identifier for the user whose memories to search.
+</ParamField>
+
+<ParamField body="limit" type="integer" default="10">
+  Maximum number of results to return. Defaults to 10.
+</ParamField>
+
+<ParamField body="memory_type" type="string">
+  Filter results by memory type. Accepts: `LONG_TERM`, `SHORT_TERM`, `EPISODIC`, `SEMANTIC`, or `PROCEDURAL`.
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates whether the operation was successful.
+</ResponseField>
+
+<ResponseField name="results" type="array">
+  Array of matching memories sorted by relevance.
+  
+  <Expandable title="Memory Result Object">
+    <ResponseField name="id" type="string">
+      Unique identifier for the memory.
+    </ResponseField>
+    
+    <ResponseField name="memory" type="string">
+      The extracted memory content.
+    </ResponseField>
+    
+    <ResponseField name="score" type="number">
+      Similarity score indicating relevance to the query (higher is better).
+    </ResponseField>
+    
+    <ResponseField name="metadata" type="object">
+      Associated metadata including memory_type and custom fields.
+    </ResponseField>
+    
+    <ResponseField name="user_id" type="string">
+      The user ID this memory belongs to.
+    </ResponseField>
+    
+    <ResponseField name="created_at" type="string">
+      ISO 8601 timestamp of when the memory was created.
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="string">
+      ISO 8601 timestamp of when the memory was last updated.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:8000/memory/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "What are my UI preferences?",
+    "user_id": "user_123",
+    "limit": 5
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "results": [
+    {
+      "id": "mem_abc123",
+      "memory": "User prefers dark mode in applications",
+      "score": 0.92,
+      "metadata": {
+        "memory_type": "LONG_TERM"
+      },
+      "user_id": "user_123",
+      "created_at": "2026-03-01T10:30:00Z",
+      "updated_at": "2026-03-01T10:30:00Z"
+    },
+    {
+      "id": "mem_def456",
+      "memory": "User likes minimal UI designs with high contrast",
+      "score": 0.87,
+      "metadata": {
+        "memory_type": "LONG_TERM"
+      },
+      "user_id": "user_123",
+      "created_at": "2026-02-28T14:20:00Z",
+      "updated_at": "2026-02-28T14:20:00Z"
+    }
+  ]
+}
+```
+
+### Filtering by Memory Type
+
+Search only for episodic memories (past events):
+
+```bash
+curl -X POST http://localhost:8000/memory/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "conferences I attended",
+    "user_id": "user_123",
+    "memory_type": "EPISODIC",
+    "limit": 10
+  }'
+```
+
+### Search Short-Term Memories
+
+Find what the user is currently working on:
+
+```bash
+curl -X POST http://localhost:8000/memory/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "current tasks",
+    "user_id": "user_123",
+    "memory_type": "SHORT_TERM"
+  }'
+```
+
+### Error Responses
+
+<ResponseField name="detail" type="string">
+  Error message describing what went wrong.
+</ResponseField>
+
+**500 Internal Server Error**
+
+```json
+{
+  "detail": "Failed to execute search query"
+}
+```
+
+### Implementation Details
+
+- **Source:** `backend/main.py:221`
+- **Search Method:** Semantic similarity using vector embeddings
+- **Index:** Supabase HNSW index with cosine distance
+- **Filtering:** Supports metadata-based filtering for memory_type and custom fields
