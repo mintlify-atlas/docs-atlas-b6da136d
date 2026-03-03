@@ -1,0 +1,121 @@
+---
+title: Add Image Memory
+description: Add image-based memories with optional context and automatic type classification
+---
+
+## POST /memory/add_image
+
+Add an image-based memory with optional text context. This endpoint is designed for screen capture and visual memory storage. The API can automatically classify the memory type based on the provided context.
+
+### Request Body
+
+<ParamField body="image_url" type="string" required>
+  Base64-encoded image data URL or remote image URL. Used for storing visual context like screenshots.
+</ParamField>
+
+<ParamField body="user_id" type="string" required>
+  Unique identifier for the user. All memories are associated with this user ID.
+</ParamField>
+
+<ParamField body="context" type="string">
+  Optional text context describing the image. Used for classification and search relevance. For example: "Working on authentication bug in React component".
+</ParamField>
+
+<ParamField body="metadata" type="object">
+  Optional metadata to attach to the memory. Defaults include `{"source": "screen_capture"}`. You can add custom fields or manually specify `memory_type`.
+</ParamField>
+
+<ParamField body="auto_classify" type="boolean" default="true">
+  Enable automatic memory type classification based on the context. When enabled and context is provided, the API uses GPT-4.1-nano to classify the memory.
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates whether the memory was successfully added.
+</ResponseField>
+
+<ResponseField name="result" type="object">
+  Details about the created memory.
+  
+  <Expandable title="Result Object">
+    <ResponseField name="id" type="string">
+      Unique identifier for the created memory.
+    </ResponseField>
+    
+    <ResponseField name="memory" type="string">
+      The extracted memory fact stored by Mem0.
+    </ResponseField>
+    
+    <ResponseField name="event" type="string">
+      Event type, typically "ADD".
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="classified_type" type="string">
+  The automatically classified memory type if auto_classify was enabled. One of: LONG_TERM, SHORT_TERM, EPISODIC, SEMANTIC, or PROCEDURAL.
+</ResponseField>
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:8000/memory/add_image \
+  -H "Content-Type: application/json" \
+  -d '{
+    "image_url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg...",
+    "user_id": "user_123",
+    "context": "Screenshot of VS Code showing authentication implementation",
+    "metadata": {
+      "source": "screen_capture",
+      "timestamp": "2025-03-03T10:30:00Z"
+    },
+    "auto_classify": true
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "result": {
+    "id": "mem_abc123",
+    "memory": "User is working on authentication implementation in VS Code",
+    "event": "ADD"
+  },
+  "classified_type": "SHORT_TERM"
+}
+```
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Screen Capture" icon="camera">
+    Automatically capture and store screenshots with visual context during coding sessions or interviews.
+  </Card>
+  
+  <Card title="Visual Documentation" icon="image">
+    Store images of diagrams, whiteboards, or UI mockups with searchable context.
+  </Card>
+  
+  <Card title="Bug Tracking" icon="bug">
+    Capture error screenshots with context for future debugging reference.
+  </Card>
+  
+  <Card title="Learning Journal" icon="book">
+    Save visual examples from tutorials or documentation with annotations.
+  </Card>
+</CardGroup>
+
+## Implementation Details
+
+The endpoint processes images using GPT-4.1-nano with vision capabilities enabled. The image is analyzed alongside any provided text context to extract meaningful facts that can be searched later.
+
+**Source:** `backend/main.py:263-305`
+
+## Related Endpoints
+
+- [Add Memory](/api/memory/add) - Add text-based memories from conversations
+- [Search Memory](/api/memory/search) - Search for stored memories including image-based ones
+- [Get All Memories](/api/memory/get-all) - Retrieve all memories for a user

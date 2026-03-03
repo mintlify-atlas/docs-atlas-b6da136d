@@ -133,9 +133,13 @@
             "pages": [
               "api/memory/overview",
               "api/memory/add",
+              "api/memory/add-image",
               "api/memory/search",
+              "api/memory/get-all",
+              "api/memory/get",
               "api/memory/update",
-              "api/memory/delete"
+              "api/memory/delete",
+              "api/memory/history"
             ]
           },
           {
@@ -143,8 +147,11 @@
             "pages": [
               "api/backend/chat",
               "api/backend/completion",
+              "api/backend/suggest",
               "api/backend/interview-copilot",
-              "api/backend/voice-agent"
+              "api/backend/voice-agent",
+              "api/backend/transcribe",
+              "api/backend/speech"
             ]
           },
           {

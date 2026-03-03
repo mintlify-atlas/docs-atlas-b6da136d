@@ -1,0 +1,173 @@
+---
+title: Text to Speech
+description: Convert text to natural-sounding speech using OpenAI's TTS models
+---
+
+## POST /api/speech
+
+Generate high-quality audio from text using OpenAI's text-to-speech models. This endpoint returns audio as a base64-encoded data URL ready for playback.
+
+### Request Body
+
+<ParamField body="text" type="string" required>
+  The text to convert to speech. Maximum length varies by model but typically supports several paragraphs.
+</ParamField>
+
+<ParamField body="voice" type="string" default="alloy">
+  The voice to use for speech generation. OpenAI provides six natural-sounding voices:
+  
+  - `alloy` (default) - Neutral and balanced
+  - `echo` - Clear and expressive
+  - `fable` - Warm and engaging
+  - `onyx` - Deep and authoritative
+  - `nova` - Energetic and bright
+  - `shimmer` - Soft and calm
+</ParamField>
+
+### Response
+
+<ResponseField name="audio" type="string">
+  Base64-encoded audio data URL in the format `data:audio/[format];base64,[data]`. Ready to use with HTML5 `<audio>` elements or Web Audio API.
+</ResponseField>
+
+### Example Request
+
+```typescript
+const response = await fetch('http://localhost:3001/api/speech', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    text: 'Hello! This is a test of the text to speech API.',
+    voice: 'nova'
+  })
+});
+
+const result = await response.json();
+console.log('Audio data URL:', result.audio);
+
+// Play the audio
+const audio = new Audio(result.audio);
+audio.play();
+```
+
+### Example Response
+
+```json
+{
+  "audio": "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA..."
+}
+```
+
+## Voice Characteristics
+
+Choose the voice that best fits your use case:
+
+| Voice | Characteristics | Best For |
+|-------|----------------|----------|
+| **alloy** | Neutral, balanced, versatile | General purpose, professional content |
+| **echo** | Clear, expressive, articulate | Presentations, tutorials, instructions |
+| **fable** | Warm, engaging, friendly | Storytelling, casual content, greetings |
+| **onyx** | Deep, authoritative, confident | Formal announcements, important messages |
+| **nova** | Energetic, bright, upbeat | Notifications, positive messages, alerts |
+| **shimmer** | Soft, calm, soothing | Relaxing content, gentle reminders |
+
+## Audio Format
+
+The API returns audio in MP3 format by default, encoded as a base64 data URL. This format:
+- Works directly in browser `<audio>` elements
+- Compatible with Web Audio API
+- Small file size for quick transmission
+- High quality at 24kHz sample rate
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Voice Responses" icon="message">
+    Generate voice responses from AI in the Voice Agent
+  </Card>
+  
+  <Card title="Notifications" icon="bell">
+    Speak important notifications or alerts
+  </Card>
+  
+  <Card title="Accessibility" icon="universal-access">
+    Read text content aloud for visually impaired users
+  </Card>
+  
+  <Card title="Multilingual Support" icon="language">
+    Generate speech in multiple languages with natural pronunciation
+  </Card>
+</CardGroup>
+
+## Error Handling
+
+### 400 Bad Request
+
+```json
+{
+  "error": "No text provided"
+}
+```
+
+### 500 Server Error
+
+```json
+{
+  "error": "Speech generation failed"
+}
+```
+
+## Performance Considerations
+
+<Info>
+  - Average response time: 1-3 seconds depending on text length
+  - Text is processed in chunks for longer inputs
+  - Audio is streamed and encoded efficiently
+  - Use shorter text segments for faster response times
+</Info>
+
+## Integration Example
+
+Complete example with error handling and playback controls:
+
+```typescript
+async function speakText(text: string, voice: string = 'alloy') {
+  try {
+    const response = await fetch('http://localhost:3001/api/speech', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, voice })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Speech generation failed');
+    }
+    
+    const { audio } = await response.json();
+    
+    // Create and play audio
+    const audioElement = new Audio(audio);
+    
+    return new Promise((resolve, reject) => {
+      audioElement.onended = resolve;
+      audioElement.onerror = reject;
+      audioElement.play();
+    });
+  } catch (error) {
+    console.error('Speech error:', error);
+    throw error;
+  }
+}
+
+// Usage
+await speakText('Welcome to Tabby AI Keyboard', 'nova');
+```
+
+**Source:** `nextjs-backend/src/app/api/speech/route.ts`
+
+## Related Endpoints
+
+- [Transcribe](/api/backend/transcribe) - Convert speech to text (STT)
+- [Voice Agent](/api/backend/voice-agent) - Real-time voice conversations
+- [Chat](/api/backend/chat) - Generate text responses that can be spoken

@@ -1,0 +1,148 @@
+---
+title: Get All Memories
+description: Retrieve all memories for a specific user with optional filtering
+---
+
+## POST /memory/get_all
+
+Retrieve all memories stored for a specific user. You can optionally filter by memory type to get only specific categories of memories.
+
+### Request Body
+
+<ParamField body="user_id" type="string" required>
+  Unique identifier for the user whose memories you want to retrieve.
+</ParamField>
+
+<ParamField body="memory_type" type="string">
+  Optional filter to retrieve only memories of a specific type. Valid values:
+  - `LONG_TERM` - Permanent personal facts and preferences
+  - `SHORT_TERM` - Temporary states and current activities
+  - `EPISODIC` - Past events with specific time context
+  - `SEMANTIC` - General knowledge and facts
+  - `PROCEDURAL` - How-to knowledge and workflows
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates whether the request was successful.
+</ResponseField>
+
+<ResponseField name="memories" type="array">
+  Array of all memories for the user.
+  
+  <Expandable title="Memory Object">
+    <ResponseField name="id" type="string">
+      Unique identifier for the memory.
+    </ResponseField>
+    
+    <ResponseField name="memory" type="string">
+      The stored memory fact.
+    </ResponseField>
+    
+    <ResponseField name="user_id" type="string">
+      The user ID this memory belongs to.
+    </ResponseField>
+    
+    <ResponseField name="metadata" type="object">
+      Associated metadata including memory_type, timestamps, and custom fields.
+    </ResponseField>
+    
+    <ResponseField name="created_at" type="string">
+      ISO timestamp when the memory was created.
+    </ResponseField>
+    
+    <ResponseField name="updated_at" type="string">
+      ISO timestamp when the memory was last updated.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+Get all memories for a user:
+
+```bash
+curl -X POST http://localhost:8000/memory/get_all \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "user_123"
+  }'
+```
+
+Get only long-term memories:
+
+```bash
+curl -X POST http://localhost:8000/memory/get_all \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "user_123",
+    "memory_type": "LONG_TERM"
+  }'
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "memories": [
+    {
+      "id": "mem_abc123",
+      "memory": "User prefers dark mode in code editors",
+      "user_id": "user_123",
+      "metadata": {
+        "memory_type": "LONG_TERM",
+        "source": "conversation"
+      },
+      "created_at": "2025-03-01T10:00:00Z",
+      "updated_at": "2025-03-01T10:00:00Z"
+    },
+    {
+      "id": "mem_def456",
+      "memory": "User is currently debugging authentication flow",
+      "user_id": "user_123",
+      "metadata": {
+        "memory_type": "SHORT_TERM",
+        "source": "screen_capture"
+      },
+      "created_at": "2025-03-03T14:30:00Z",
+      "updated_at": "2025-03-03T14:30:00Z"
+    }
+  ]
+}
+```
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Memory Dashboard" icon="dashboard">
+    Display all stored memories in the Brain Panel UI for user review.
+  </Card>
+  
+  <Card title="Context Loading" icon="download">
+    Load all relevant memories when starting a new session or conversation.
+  </Card>
+  
+  <Card title="Data Export" icon="file-export">
+    Export user's complete memory profile for backup or migration.
+  </Card>
+  
+  <Card title="Memory Management" icon="sliders">
+    Review and manage memories by type for cleanup or organization.
+  </Card>
+</CardGroup>
+
+## Performance Considerations
+
+<Warning>
+  This endpoint returns all memories for a user. For large memory sets (100+ memories), consider using paginated search or filtering by memory_type to improve performance.
+</Warning>
+
+**Source:** `backend/main.py:246-260`
+
+## Related Endpoints
+
+- [Search Memory](/api/memory/search) - Search for specific memories (recommended for large datasets)
+- [Get Memory](/api/memory/get) - Retrieve a single memory by ID
+- [Delete Memory](/api/memory/delete) - Delete specific or all memories

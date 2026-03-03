@@ -1,0 +1,128 @@
+---
+title: Memory History
+description: Get the complete change history and version log for a specific memory
+---
+
+## GET /memory/history/{memory_id}
+
+Retrieve the complete change history for a specific memory. This endpoint provides a changelog of all modifications made to the memory over time, useful for tracking how memories evolve.
+
+### Path Parameters
+
+<ParamField path="memory_id" type="string" required>
+  The unique identifier of the memory whose history you want to retrieve.
+</ParamField>
+
+### Response
+
+<ResponseField name="success" type="boolean">
+  Indicates whether the request was successful.
+</ResponseField>
+
+<ResponseField name="history" type="array">
+  Array of history entries showing all changes to the memory.
+  
+  <Expandable title="History Entry">
+    <ResponseField name="id" type="string">
+      Unique identifier for this history entry.
+    </ResponseField>
+    
+    <ResponseField name="memory_id" type="string">
+      The memory ID this history entry belongs to.
+    </ResponseField>
+    
+    <ResponseField name="prev_value" type="string">
+      The previous value of the memory before this change.
+    </ResponseField>
+    
+    <ResponseField name="new_value" type="string">
+      The new value of the memory after this change.
+    </ResponseField>
+    
+    <ResponseField name="event" type="string">
+      Type of event (ADD, UPDATE, DELETE).
+    </ResponseField>
+    
+    <ResponseField name="timestamp" type="string">
+      ISO timestamp when this change occurred.
+    </ResponseField>
+    
+    <ResponseField name="is_deleted" type="boolean">
+      Whether this change was a deletion.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Request
+
+```bash
+curl http://localhost:8000/memory/history/mem_abc123
+```
+
+### Example Response
+
+```json
+{
+  "success": true,
+  "history": [
+    {
+      "id": "hist_001",
+      "memory_id": "mem_abc123",
+      "prev_value": null,
+      "new_value": "User prefers TypeScript for new projects",
+      "event": "ADD",
+      "timestamp": "2025-03-01T10:00:00Z",
+      "is_deleted": false
+    },
+    {
+      "id": "hist_002",
+      "memory_id": "mem_abc123",
+      "prev_value": "User prefers TypeScript for new projects",
+      "new_value": "User prefers TypeScript over JavaScript for new projects",
+      "event": "UPDATE",
+      "timestamp": "2025-03-02T15:30:00Z",
+      "is_deleted": false
+    }
+  ]
+}
+```
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Audit Trail" icon="clock-rotate-left">
+    Track how user preferences and facts change over time for debugging or compliance.
+  </Card>
+  
+  <Card title="Memory Evolution" icon="timeline">
+    Understand how AI's understanding of user preferences has evolved through interactions.
+  </Card>
+  
+  <Card title="Rollback Support" icon="rotate-left">
+    View previous versions to potentially restore earlier memory states.
+  </Card>
+  
+  <Card title="Quality Control" icon="magnifying-glass-chart">
+    Review memory updates to ensure AI is correctly refining its understanding.
+  </Card>
+</CardGroup>
+
+## Understanding Memory Versioning
+
+Mem0 maintains a complete history of all changes to memories:
+
+- **ADD events**: Initial memory creation
+- **UPDATE events**: Modifications to existing memories (typically refinements or corrections)
+- **DELETE events**: Soft deletes (memory marked as deleted but history preserved)
+
+<Info>
+  Memory history is useful for understanding how the system learns from user interactions. Each update typically represents the AI refining its understanding based on new context.
+</Info>
+
+**Source:** `backend/main.py:356-365`
+
+## Related Endpoints
+
+- [Get Memory](/api/memory/get) - Retrieve the current state of a memory
+- [Update Memory](/api/memory/update) - Modify an existing memory
+- [Get All Memories](/api/memory/get-all) - Retrieve all memories for a user

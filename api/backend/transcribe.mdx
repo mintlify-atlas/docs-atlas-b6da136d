@@ -1,0 +1,151 @@
+---
+title: Audio Transcription
+description: Convert audio to text using Groq's Whisper Large v3 model
+---
+
+## POST /api/transcribe
+
+Transcribe audio to text with high accuracy using Groq's Whisper Large v3 model. This endpoint handles real-time voice transcription with fast processing (200-500ms latency).
+
+### Request Body
+
+<ParamField body="audio" type="string" required>
+  Base64-encoded audio data in WebM format. The audio should be captured from the microphone and encoded before sending.
+</ParamField>
+
+<ParamField body="language" type="string" default="en">
+  The language code for the audio. Whisper supports 99+ languages. Examples:
+  - `en` - English (default)
+  - `es` - Spanish
+  - `fr` - French
+  - `de` - German
+  - `ja` - Japanese
+  - `zh` - Chinese
+</ParamField>
+
+### Response
+
+<ResponseField name="text" type="string">
+  The transcribed text from the audio.
+</ResponseField>
+
+<ResponseField name="language" type="string">
+  The detected or specified language of the transcription.
+</ResponseField>
+
+<ResponseField name="duration" type="number">
+  Processing time in milliseconds.
+</ResponseField>
+
+### Example Request
+
+```typescript
+// Capture audio from microphone
+const mediaRecorder = new MediaRecorder(stream, { 
+  mimeType: 'audio/webm' 
+});
+
+const audioChunks = [];
+mediaRecorder.ondataavailable = (event) => {
+  audioChunks.push(event.data);
+};
+
+mediaRecorder.onstop = async () => {
+  const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+  
+  // Convert to base64
+  const reader = new FileReader();
+  reader.readAsDataURL(audioBlob);
+  reader.onloadend = async () => {
+    const base64Audio = reader.result.split(',')[1];
+    
+    // Send to transcription API
+    const response = await fetch('http://localhost:3001/api/transcribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        audio: base64Audio,
+        language: 'en'
+      })
+    });
+    
+    const result = await response.json();
+    console.log('Transcription:', result.text);
+  };
+};
+
+// Start recording
+mediaRecorder.start();
+```
+
+### Example Response
+
+```json
+{
+  "text": "Hello, this is a test of the transcription API.",
+  "language": "en",
+  "duration": 342
+}
+```
+
+## Technical Details
+
+### Audio Format Requirements
+
+<Note>
+  Audio must be in WebM format for optimal compatibility. The endpoint uses Groq's Whisper Large v3 model which provides:
+  - 95%+ accuracy for clear speech
+  - Support for 99+ languages
+  - Fast processing (200-500ms latency)
+</Note>
+
+### Supported Languages
+
+Whisper Large v3 supports multilingual transcription with automatic language detection. Major supported languages include:
+
+- **European**: English, Spanish, French, German, Italian, Portuguese, Dutch, Polish, Russian
+- **Asian**: Chinese (Mandarin), Japanese, Korean, Hindi, Thai, Vietnamese, Indonesian
+- **Middle Eastern**: Arabic, Hebrew, Turkish, Persian
+- And 80+ more languages
+
+### Performance Characteristics
+
+| Metric | Value |
+|--------|-------|
+| Average Latency | 200-500ms |
+| Max Audio Length | 30 seconds per request |
+| Accuracy (clear speech) | 95%+ |
+| Streaming Support | No (process complete audio) |
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Voice Typing" icon="microphone">
+    Real-time voice-to-text for hands-free typing
+  </Card>
+  
+  <Card title="Voice Commands" icon="terminal">
+    Transcribe spoken commands for desktop automation
+  </Card>
+  
+  <Card title="Meeting Notes" icon="notes">
+    Convert speech to text for documentation
+  </Card>
+  
+  <Card title="Accessibility" icon="universal-access">
+    Enable voice input for users who prefer speech
+  </Card>
+</CardGroup>
+
+## Keyboard Shortcuts
+
+- **`Ctrl+Alt+T`** - Toggle voice transcription mode
+- **`Ctrl+Shift+T`** - Cycle through transcription modes (Direct Paste, Typewriter, Buffer)
+
+**Source:** `nextjs-backend/src/app/api/transcribe/route.ts`
+
+## Related Endpoints
+
+- [Speech](/api/backend/speech) - Convert text to speech (TTS)
+- [Voice Agent](/api/backend/voice-agent) - Real-time voice conversation
+- [Completion](/api/backend/completion) - Process transcribed text with AI

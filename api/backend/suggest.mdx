@@ -1,0 +1,128 @@
+---
+title: AI Suggestions
+description: Get memory-enhanced inline text completions and suggestions
+---
+
+## POST /api/suggest
+
+Generate intelligent inline suggestions based on the current context. This endpoint integrates with the user's memory system to provide personalized, context-aware completions.
+
+### Request Body
+
+<ParamField body="context" type="string" required>
+  The current text context where the suggestion will be inserted. This can be selected text or the text around the cursor.
+</ParamField>
+
+<ParamField body="userId" type="string" required>
+  Unique identifier for the user. Used to retrieve personalized memories.
+</ParamField>
+
+<ParamField body="instruction" type="string">
+  Optional instruction to guide the suggestion. For example: "complete this sentence" or "suggest next steps".
+</ParamField>
+
+<ParamField body="model" type="string" default="gpt-4o-mini">
+  The AI model to use for generation. Supported models include:
+  - `gpt-4o-mini` (default)
+  - `gpt-4o`
+  - `claude-3-5-sonnet-20241022`
+  - `groq/llama-3.3-70b-versatile`
+  - `cerebras/llama-3.3-70b`
+</ParamField>
+
+### Response
+
+The endpoint returns a streaming text response with the AI-generated suggestion.
+
+<ResponseField name="suggestion" type="string (streaming)">
+  The generated text suggestion, streamed token-by-token for real-time display.
+</ResponseField>
+
+### Memory Integration
+
+The suggest endpoint uses three memory tools to provide personalized suggestions:
+
+1. **searchMemory** - Searches relevant memories based on the context
+2. **addMemory** - Stores new facts learned during the interaction
+3. **getAllMemories** - Retrieves all user memories for comprehensive context
+
+The system automatically:
+- Searches for relevant personal preferences and past context
+- Incorporates your coding style, preferences, and recent work
+- Stores new insights for future suggestions
+
+### Example Request
+
+```typescript
+const response = await fetch('http://localhost:3001/api/suggest', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    context: 'const handleSubmit = async () => {',
+    userId: 'user_123',
+    instruction: 'Complete this function',
+    model: 'gpt-4o-mini'
+  })
+});
+
+const reader = response.body?.getReader();
+const decoder = new TextDecoder();
+
+// Read streaming response
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  
+  const chunk = decoder.decode(value);
+  console.log(chunk); // Display suggestion as it streams
+}
+```
+
+### Example Response (Streaming)
+
+```text
+  try {
+    const formData = new FormData();
+    formData.append('data', JSON.stringify(data));
+    
+    const response = await api.post('/submit', formData);
+    if (response.ok) {
+      showSuccessToast('Submitted successfully');
+    }
+  } catch (error) {
+    showErrorToast(error.message);
+  }
+}
+```
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Code Completion" icon="code">
+    Intelligent code completions that match your style and patterns
+  </Card>
+  
+  <Card title="Writing Assistance" icon="pen">
+    Context-aware text completions for emails and documents
+  </Card>
+  
+  <Card title="Next-Step Suggestions" icon="forward">
+    Suggest logical next steps based on current context
+  </Card>
+  
+  <Card title="Personalized Help" icon="user">
+    Suggestions that incorporate your preferences and history
+  </Card>
+</CardGroup>
+
+## Keyboard Shortcut
+
+Trigger inline suggestions with **`Ctrl+Space`** in the Tabby desktop app.
+
+**Source:** `nextjs-backend/src/app/api/suggest/route.ts`
+
+## Related Endpoints
+
+- [Completion](/api/backend/completion) - General text transformations and completions
+- [Chat](/api/backend/chat) - Full conversational AI with memory
+- [Search Memory](/api/memory/search) - Directly query the memory system
