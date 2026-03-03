@@ -1,0 +1,172 @@
+{
+  "projectType": "saas",
+  "projectName": "Tabby AI Keyboard",
+  "projectDescription": "System-wide AI assistant that provides real-time coding interview help, context-aware autocomplete, and intelligent automation at the point of input.",
+  "theme": "aspen",
+  "primaryColor": "#8B5CF6",
+  "lightColor": "#A78BFA",
+  "darkColor": "#6D28D9",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/architecture",
+              "concepts/tech-stack",
+              "concepts/memory-system"
+            ]
+          },
+          {
+            "group": "Keyboard Shortcuts",
+            "pages": [
+              "shortcuts/overview",
+              "shortcuts/interview-copilot",
+              "shortcuts/action-menu",
+              "shortcuts/voice-agent"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Features",
+        "groups": [
+          {
+            "group": "Interview Copilot",
+            "pages": [
+              "features/interview-copilot/overview",
+              "features/interview-copilot/screen-capture",
+              "features/interview-copilot/tabs"
+            ]
+          },
+          {
+            "group": "AI Assistance",
+            "pages": [
+              "features/ai-assistance/action-menu",
+              "features/ai-assistance/suggestions",
+              "features/ai-assistance/text-transformations"
+            ]
+          },
+          {
+            "group": "Memory & Brain",
+            "pages": [
+              "features/memory/brain-panel",
+              "features/memory/knowledge-graph",
+              "features/memory/context-capture"
+            ]
+          },
+          {
+            "group": "Voice Features",
+            "pages": [
+              "features/voice/voice-agent",
+              "features/voice/transcription",
+              "features/voice/commands"
+            ]
+          },
+          {
+            "group": "Automation",
+            "pages": [
+              "features/automation/desktop-control",
+              "features/automation/typewriter-mode",
+              "features/automation/windows-mcp"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Setup",
+            "pages": [
+              "guides/setup/prerequisites",
+              "guides/setup/database",
+              "guides/setup/environment",
+              "guides/setup/neo4j"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "guides/configuration/ai-providers",
+              "guides/configuration/memory-backend",
+              "guides/configuration/settings"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "guides/deployment/building",
+              "guides/deployment/releases",
+              "guides/deployment/backend-deploy"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Memory API",
+            "pages": [
+              "api/memory/overview",
+              "api/memory/add",
+              "api/memory/search",
+              "api/memory/update",
+              "api/memory/delete"
+            ]
+          },
+          {
+            "group": "Backend API",
+            "pages": [
+              "api/backend/chat",
+              "api/backend/completion",
+              "api/backend/interview-copilot",
+              "api/backend/voice-agent"
+            ]
+          },
+          {
+            "group": "Electron IPC",
+            "pages": [
+              "api/ipc/overview",
+              "api/ipc/text-operations",
+              "api/ipc/window-management"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Real-time coding interview assistance with screen capture and analysis",
+    "Context-aware AI autocomplete and suggestions",
+    "Persistent memory system with vector search and knowledge graphs",
+    "Voice agent with transcription and text-to-speech",
+    "Desktop automation with Windows MCP integration",
+    "System-wide action menu for text transformations"
+  ],
+  "publicApiSurface": [
+    "POST /add - Add memory to vector store",
+    "GET /search - Search memories by query",
+    "GET /get_all - Retrieve all memories for user",
+    "PUT /update - Update existing memory",
+    "DELETE /delete - Delete memory by ID",
+    "POST /api/chat - Stream chat completions",
+    "POST /api/completion - Generate AI completions",
+    "POST /api/interview-copilot - Analyze coding problems",
+    "POST /api/suggest - Get inline suggestions",
+    "POST /api/voice-agent - Voice agent interactions",
+    "POST /api/transcribe - Transcribe audio to text",
+    "POST /api/speech - Text to speech generation"
+  ]
+}
